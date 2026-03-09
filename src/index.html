@@ -1,0 +1,2208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Joy Browser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f5f5f7;
+      --surface:   #ffffff;
+      --surface2:  #e8e8ed;
+      --border:    #d1d1d6;
+      --accent:    #5b4de8;
+      --accent2:   #7c6af7;
+      --text:      #1c1c1e;
+      --text-dim:  #6e6e73;
+      --tab-h:     38px;
+      --bar-h:     46px;
+      --radius:    8px;
+      --sidebar-w: 50px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      overflow: hidden;
+      user-select: none;
+      border-radius: 12px;
+    }
+
+    html {
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 0 1px rgba(91,77,232,0.15), 0 8px 32px rgba(0,0,0,0.18);
+      border-radius: 12px;
+    }
+
+    /* ── TITLEBAR / DRAG REGION ── */
+    #titlebar {
+      display: flex;
+      align-items: center;
+      height: var(--tab-h);
+      background: var(--bg);
+      -webkit-app-region: drag;
+      padding-left: 0;
+      border-bottom: 1px solid var(--border);
+      gap: 6px;
+    }
+
+    /* Extra drag strip at the very top for easy window dragging */
+    #drag-strip {
+      height: 16px;
+      background: linear-gradient(90deg, #5b4de8 0%, #a78bfa 50%, #5b4de8 100%);
+      -webkit-app-region: drag;
+      flex-shrink: 0;
+      border-radius: 12px 12px 0 0;
+    }
+
+    /* Window controls */
+    #win-controls {
+      display: flex;
+      gap: 4px;
+      -webkit-app-region: no-drag;
+      flex-shrink: 0;
+      width: var(--sidebar-w);
+      justify-content: center;
+      padding: 0;
+    }
+    .wc-btn {
+      width: 16px; height: 16px; border-radius: 4px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-dim); cursor: pointer; font-size: 9px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .wc-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border); }
+    #btn-close:hover    { background: rgba(255,80,80,0.12);  color: #ff5f57; border-color: #ff5f57; }
+    #btn-maximize:hover { background: rgba(40,200,64,0.12);  color: #1a9e30; border-color: #28c840; }
+
+    /* Tabs */
+    #tabs {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      gap: 4px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      -webkit-app-region: no-drag;
+      padding: 0 4px;
+    }
+    #tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 28px;
+      padding: 0 10px 0 10px;
+      background: var(--surface2);
+      border: 1px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      max-width: 180px;
+      min-width: 80px;
+      transition: background 0.15s, border-color 0.15s;
+      -webkit-app-region: no-drag;
+      position: relative;
+    }
+    .tab:hover { background: var(--surface2); border-color: var(--border); }
+    .tab.active {
+      background: var(--surface2);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent) inset;
+    }
+    .tab-favicon {
+      width: 14px; height: 14px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      object-fit: contain;
+    }
+    .tab-title {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .tab.active .tab-title { color: var(--text); }
+    .tab-close {
+      width: 16px; height: 16px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      line-height: 1;
+      transition: background 0.1s, color 0.1s;
+    }
+    .tab-close:hover { background: rgba(255,80,80,0.2); color: #ff5f57; }
+
+    #new-tab-btn {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+      -webkit-app-region: no-drag;
+    }
+    #new-tab-btn:hover { background: var(--surface2); color: var(--text); }
+
+    /* ── NAVBAR ── */
+    #navbar {
+      display: flex;
+      align-items: center;
+      height: var(--bar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 10px;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      width: 32px; height: 32px;
+      border-radius: var(--radius);
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .nav-btn:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
+    .nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+    #url-bar-wrap {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    #url-icon {
+      position: absolute;
+      left: 10px;
+      color: var(--text-dim);
+      font-size: 13px;
+      pointer-events: none;
+    }
+    #url-bar {
+      width: 100%;
+      height: 34px;
+      padding: 0 12px 0 30px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      user-select: text;
+    }
+    #url-bar:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,106,247,0.15);
+    }
+    #url-bar::placeholder { color: var(--text-dim); font-family: 'DM Sans', sans-serif; }
+
+    #security-badge {
+      position: absolute;
+      right: 10px;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+    .secure   { background: rgba(52,211,153,0.15); color: #059669; }
+    .insecure { background: rgba(251,113,133,0.15); color: #e11d48; }
+
+    /* ── NAVBAR HIDDEN ── */
+    #navbar { display: none; }
+
+    /* ── WEBVIEW CONTAINER ── */
+
+    webview {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      border: none;
+    }
+    webview.active { display: flex; }
+
+    /* ── NEW TAB PAGE ── */
+    .newtab-page {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      background: var(--bg);
+    }
+    .newtab-page.active { display: flex; }
+
+    .newtab-logo {
+      font-size: 40px;
+      font-weight: 600;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .newtab-search {
+      display: flex;
+      align-items: center;
+      width: 520px;
+      max-width: 90vw;
+      gap: 0;
+    }
+    .newtab-search input {
+      flex: 1;
+      height: 46px;
+      padding: 0 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-right: none;
+      border-radius: var(--radius) 0 0 var(--radius);
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+      user-select: text;
+    }
+    .newtab-search input:focus { border-color: var(--accent); }
+    .newtab-search button {
+      height: 46px;
+      padding: 0 20px;
+      background: var(--accent);
+      border: none;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .newtab-search button:hover { background: var(--accent2); }
+
+    .newtab-quicklinks {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 560px;
+    }
+    .quicklink {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 18px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+      text-decoration: none;
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+    .quicklink:hover { border-color: var(--accent); transform: translateY(-2px); color: var(--text); }
+    .quicklink-icon { font-size: 22px; }
+
+    /* Loading bar */
+    #loading-bar {
+      height: 3px;
+      background: transparent;
+      transform-origin: left;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    #loading-bar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      transform-origin: left;
+      transform: scaleX(0);
+      transition: transform 0.3s ease, opacity 0.3s;
+      opacity: 0;
+    }
+    #loading-bar.loading::after {
+      opacity: 1;
+      animation: loadprogress 1.5s ease infinite;
+    }
+    #loading-bar.done::after {
+      transform: scaleX(1);
+      opacity: 0;
+      transition: transform 0.2s ease, opacity 0.4s 0.2s;
+    }
+    @keyframes loadprogress {
+      0%   { transform: scaleX(0); }
+      50%  { transform: scaleX(0.7); }
+      100% { transform: scaleX(0.9); }
+    }
+    /* ── SIDEBAR ── */
+    #main-layout {
+      display: flex;
+      height: calc(100vh - var(--tab-h) - 16px - 40px);
+    }
+
+    #sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      background: #ebebf0;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 0;
+      gap: 4px;
+    }
+
+    .sidebar-btn {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      padding: 0;
+      position: relative;
+    }
+    .sidebar-btn img {
+      width: 20px; height: 20px;
+      border-radius: 4px;
+      object-fit: contain;
+    }
+    .sidebar-btn:hover {
+      background: var(--surface2);
+      border-color: var(--border);
+      transform: scale(1.08);
+    }
+    .sidebar-btn:active { transform: scale(0.95); }
+    .sidebar-btn:hover .sidebar-tooltip { opacity: 1; pointer-events: none; }
+
+    .sidebar-tooltip {
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 999;
+      pointer-events: none;
+    }
+    .sidebar-tooltip::before {
+      content: '';
+      position: absolute;
+      right: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-right-color: var(--border);
+    }
+
+    #content-wrapper {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    #content {
+      position: relative;
+      flex: 1;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    /* ── RIGHT SIDEBAR (Comments) ── */
+    #right-sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #notes-sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #right-sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 14px;
+      border-bottom: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+    #right-sidebar-header span {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    #right-sidebar-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .comment-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 10px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 20px;
+    }
+    .comment-placeholder-icon { font-size: 28px; opacity: 0.4; }
+    .comment-placeholder-text { font-size: 12px; line-height: 1.5; }
+
+    #right-sidebar-footer {
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    #comment-input {
+      flex: 1;
+      height: 32px;
+      padding: 0 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+      user-select: text;
+    }
+    #comment-input:focus { border-color: var(--accent); }
+    #comment-input::placeholder { color: var(--text-dim); }
+    #comment-submit {
+      width: 32px; height: 32px;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    #comment-submit:hover { background: var(--accent2); }
+    /* ── URL PICKER (project click) ── */
+    #url-picker {
+      position: fixed;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.14);
+      z-index: 9999;
+      min-width: 280px;
+      max-width: 380px;
+      padding: 6px;
+      display: none;
+    }
+    #url-picker.open { display: block; }
+
+    #url-picker-header {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 6px 10px 4px;
+    }
+
+    .url-picker-item {
+      display: flex;
+      flex-direction: column;
+      padding: 7px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.1s;
+      gap: 2px;
+    }
+    .url-picker-item:hover { background: var(--surface2); }
+    .url-picker-title {
+      font-size: 12px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .url-picker-url {
+      font-size: 11px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .url-picker-open-all {
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+      padding-top: 4px;
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 500;
+      text-align: center;
+      padding: 7px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .url-picker-open-all:hover { background: var(--surface2); }
+
+    /* ── BOTTOM PROJECTS BAR ── */
+    #projects-bar {
+      height: 40px;
+      background: #ede9fb;
+      border-top: 1px solid #c4b8f5;
+      display: flex;
+      align-items: center;
+      padding: 0 10px 6px;
+      gap: 6px;
+      flex-shrink: 0;
+      margin-bottom: 6px;
+    }
+
+    #projects-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding-right: 8px;
+      border-right: 1px solid var(--border);
+      margin-right: 2px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    #projects-list {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex: 1;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    #projects-list::-webkit-scrollbar { display: none; }
+
+    .project-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 28px;
+      padding: 0 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 12px;
+      color: var(--text-dim);
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .project-tab:hover { border-color: var(--accent); color: var(--text); }
+    .project-tab { color: var(--text); }
+    .project-tab.active { color: var(--text); }
+    .project-tab-close {
+      width: 14px; height: 14px;
+      border-radius: 3px;
+      border: none;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0.6;
+      transition: opacity 0.1s, background 0.1s;
+      padding: 0;
+    }
+    .project-tab-close:hover { opacity: 1; background: rgba(0,0,0,0.15); }
+
+    #new-project-btn {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      border: 1px dashed var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    #new-project-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(91,77,232,0.06); }
+
+    .tab-project-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #d1d1d6;
+      border: none;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s, transform 0.1s;
+      padding: 0;
+      position: relative;
+    }
+    .tab-project-dot:hover { transform: scale(1.3); }
+    .tab-project-dot.assigned { background: var(--accent); }
+
+    /* Project picker dropdown */
+    #project-picker {
+      position: fixed;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      z-index: 9999;
+      min-width: 160px;
+      padding: 4px;
+      display: none;
+    }
+    #project-picker.open { display: block; }
+    .picker-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--text);
+      transition: background 0.1s;
+    }
+    .picker-item:hover { background: var(--surface2); }
+    .picker-item.active-project { color: var(--accent); font-weight: 600; }
+    .picker-item-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+    .picker-empty {
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    .picker-unassign {
+      border-top: 1px solid var(--border);
+      margin-top: 2px;
+      padding-top: 2px;
+      color: var(--text-dim);
+    }
+    .project-tab input.rename-input {
+      width: 80px;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      outline: none;
+      font-size: 12px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      user-select: text;
+      padding: 0 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="url-picker"></div>
+<div id="project-picker"></div>
+
+<div id="drag-strip"></div>
+
+<!-- TITLEBAR with tabs -->
+<div id="titlebar">
+  <div id="win-controls">
+    <button class="wc-btn" id="btn-close"    title="Close">✕</button>
+    <button class="wc-btn" id="btn-maximize" title="Maximize">⤢</button>
+  </div>
+  <button id="new-tab-btn" title="New tab">+</button>
+  <div id="tabs"></div>
+  <button id="toggle-comments-btn" title="Comments (coming soon)" disabled style="
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; -webkit-app-region: no-drag;
+    opacity: 0.4; cursor: not-allowed;
+  ">💬</button>
+  <button id="toggle-notes-btn" title="Toggle notes panel" style="
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0; -webkit-app-region: no-drag;
+  ">📝</button>
+  <button id="toggle-history-btn" title="Toggle history panel" style="
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0; -webkit-app-region: no-drag;
+  ">🕘</button>
+  <button id="settings-btn" title="Settings" style="
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0; -webkit-app-region: no-drag; margin-right: 8px;
+  ">⚙️</button>
+</div>
+
+<!-- NAVIGATION BAR -->
+<div id="navbar">
+  <button class="nav-btn" id="btn-back"    title="Back">&#8592;</button>
+  <button class="nav-btn" id="btn-forward" title="Forward">&#8594;</button>
+  <button class="nav-btn" id="btn-reload"  title="Reload">&#8635;</button>
+  <button class="nav-btn" id="btn-home"    title="Home">⌂</button>
+
+  <div id="url-bar-wrap">
+    <span id="url-icon">🔒</span>
+    <input id="url-bar" type="text" placeholder="Search or enter URL…" spellcheck="false" autocomplete="off"/>
+    <span id="security-badge" class="secure" style="display:none">HTTPS</span>
+  </div>
+</div>
+
+<!-- SIDEBAR + CONTENT AREA -->
+<div id="main-layout">
+  <div id="sidebar">
+    <button class="sidebar-btn" title="Gemini AI" onclick="navigateTo('https://gemini.google.com')">
+      <img src="https://www.gstatic.com/images/branding/productlogos/gemini/v2/web-32dp/logo_gemini_color_1x_web_32dp.png" alt="Gemini"
+           onerror="this.style.display='none';this.parentElement.querySelector('.sb-emoji').style.display='flex'"/>
+      <span class="sb-emoji" style="display:none;font-size:18px">✨</span>
+      <span class="sidebar-tooltip">Gemini AI</span>
+    </button>
+    <button class="sidebar-btn" title="Claude AI" onclick="navigateTo('https://claude.ai')">
+      <img src="https://claude.ai/favicon.ico" alt="Claude"
+           onerror="this.style.display='none';this.parentElement.querySelector('.sb-emoji').style.display='flex'"/>
+      <span class="sb-emoji" style="display:none;font-size:18px">🤖</span>
+      <span class="sidebar-tooltip">Claude AI</span>
+    </button>
+    <button class="sidebar-btn" title="Google News" onclick="navigateTo('https://news.google.com')">
+      <img src="https://ssl.gstatic.com/news/icon/about/2x/googlenews_color_96dp.png" alt="Google News"
+           onerror="this.style.display='none';this.parentElement.querySelector('.sb-emoji').style.display='flex'"/>
+      <span class="sb-emoji" style="display:none;font-size:18px">📰</span>
+      <span class="sidebar-tooltip">Google News</span>
+    </button>
+    <button class="sidebar-btn" title="Wikipedia" onclick="navigateTo('https://www.wikipedia.org')">
+      <img src="https://www.wikipedia.org/favicon.ico" alt="Wikipedia"/>
+      <span class="sidebar-tooltip">Wikipedia</span>
+    </button>
+    <button class="sidebar-btn" title="LinkedIn" onclick="navigateTo('https://www.linkedin.com')">
+      <img src="https://www.linkedin.com/favicon.ico" alt="LinkedIn"/>
+      <span class="sidebar-tooltip">LinkedIn</span>
+    </button>
+    <button class="sidebar-btn" title="Bluesky" onclick="navigateTo('https://bsky.app')">
+      <img src="https://bsky.app/static/favicon-32x32.png" alt="Bluesky"/>
+      <span class="sidebar-tooltip">Bluesky</span>
+    </button>
+    <button class="sidebar-btn" title="Our World in Data" onclick="navigateTo('https://ourworldindata.org')">
+      <img src="https://ourworldindata.org/favicon.ico" alt="Our World in Data"
+           onerror="this.style.display='none';this.parentElement.querySelector('.sb-emoji').style.display='flex'"/>
+      <span class="sb-emoji" style="display:none;font-size:18px">🌍</span>
+      <span class="sidebar-tooltip">Our World in Data</span>
+    </button>
+    <button class="sidebar-btn" title="Google Scholar" onclick="navigateTo('https://scholar.google.com')">
+      <img src="https://scholar.google.com/favicon.ico" alt="Google Scholar"
+           onerror="this.style.display='none';this.parentElement.querySelector('.sb-emoji').style.display='flex'"/>
+      <span class="sb-emoji" style="display:none;font-size:18px">🎓</span>
+      <span class="sidebar-tooltip">Google Scholar</span>
+    </button>
+    <button class="sidebar-btn" title="Linux Kernel" onclick="navigateTo('https://www.kernel.org')">
+      <img src="https://www.kernel.org/theme/images/logos/favicon.png" alt="Kernel" onerror="this.style.display='none';this.parentElement.querySelector('.sb-emoji').style.display='flex'"/>
+      <span class="sb-emoji" style="display:none;font-size:18px">🐧</span>
+      <span class="sidebar-tooltip">Linux Kernel</span>
+    </button>
+  </div>
+  <div id="content-wrapper">
+    <div id="loading-bar"></div>
+    <div id="content"></div>
+  </div>
+  <div id="right-sidebar" style="display:none;">
+    <div id="right-sidebar-header">
+      <span>💬 Comments</span>
+    </div>
+    <div id="right-sidebar-body">
+      <div class="comment-placeholder">
+        <div class="comment-placeholder-icon">💬</div>
+        <div class="comment-placeholder-text">Coming in future.</div>
+      </div>
+    </div>
+  </div>
+  <div id="notes-sidebar" style="display:none;">
+    <div id="right-sidebar-header">
+      <span>📝 Notes</span>
+    </div>
+    <div id="notes-url-label" style="font-size:10px;color:var(--text-dim);padding:6px 12px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:monospace;flex-shrink:0;"></div>
+    <div id="notes-body" style="flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;"></div>
+    <div id="notes-footer" style="padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
+      <input id="note-input" type="text" placeholder="Add a note…" autocomplete="off" style="flex:1;height:32px;padding:0 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s;user-select:text;"/>
+      <button id="note-submit" title="Add note" style="width:32px;height:32px;border-radius:var(--radius);border:none;background:var(--accent);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s;">↑</button>
+    </div>
+  </div>
+  <div id="history-sidebar" style="display:none;">
+    <div id="right-sidebar-header">
+      <span>🕘 History</span>
+    </div>
+    <div id="history-search-wrap" style="padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <input id="history-search" type="text" placeholder="Search history…" autocomplete="off" style="width:100%;height:28px;padding:0 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s;user-select:text;"/>
+    </div>
+    <div id="history-body" style="flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:2px;scrollbar-width:thin;"></div>
+    <div id="history-footer" style="padding:8px 10px;border-top:1px solid var(--border);flex-shrink:0;">
+      <button id="history-clear-btn" style="width:100%;height:28px;border-radius:var(--radius);border:1px solid var(--border);background:transparent;color:var(--text-dim);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.15s,color 0.15s;">Clear history</button>
+    </div>
+  </div>
+</div>
+<div id="projects-bar">
+  <span id="projects-label">Projects</span>
+  <button id="new-project-btn" title="New project">+</button>
+  <div id="projects-list"></div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let tabs = [];
+let activeTabId = null;
+let tabCounter = 0;
+
+const HOMEPAGE = 'newtab';
+const DEFAULT_SEARCH = 'https://www.google.com/search?q=';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function normalizeUrl(input) {
+  input = input.trim();
+  if (!input) return HOMEPAGE;
+  if (input === 'newtab' || input === '') return HOMEPAGE;
+  // If it looks like a URL
+  if (/^https?:\/\//i.test(input)) return input;
+  if (/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/.test(input) && !input.includes(' '))
+    return 'https://' + input;
+  // Otherwise search
+  return DEFAULT_SEARCH + encodeURIComponent(input);
+}
+
+function getTabById(id) { return tabs.find(t => t.id === id); }
+
+// ── Tab rendering ─────────────────────────────────────────────────────────────
+function renderTabs() {
+  const container = document.getElementById('tabs');
+  container.innerHTML = '';
+  tabs.forEach(tab => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (tab.id === activeTabId ? ' active' : '');
+    el.dataset.id = tab.id;
+
+    const favicon = document.createElement('img');
+    favicon.className = 'tab-favicon';
+    favicon.src = tab.favicon || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="%237c6af7" opacity="0.4"/></svg>';
+    favicon.onerror = () => { favicon.style.display = 'none'; };
+
+    const title = document.createElement('span');
+    title.className = 'tab-title';
+    title.textContent = tab.title || 'New Tab';
+
+    // Project dot
+    const dot = document.createElement('button');
+    const project = tab.projectId ? projects.find(p => p.id === tab.projectId) : null;
+    const dotColor = project ? (project.color || '#7c6af7') : '#d1d1d6';
+    dot.className = 'tab-project-dot' + (tab.projectId ? ' assigned' : '');
+    dot.style.background = dotColor;
+    dot.title = tab.projectId ? 'Assigned to project' : 'Assign to project';
+    dot.addEventListener('click', e => { e.stopPropagation(); openProjectPicker(tab.id, dot); });
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'tab-close';
+    closeBtn.innerHTML = '✕';
+    closeBtn.title = 'Close tab';
+    closeBtn.addEventListener('click', e => { e.stopPropagation(); closeTab(tab.id); });
+
+    el.appendChild(favicon);
+    el.appendChild(title);
+    el.appendChild(dot);
+    el.appendChild(closeBtn);
+    el.addEventListener('click', () => switchTab(tab.id));
+    container.appendChild(el);
+  });
+}
+
+// ── Create / close / switch tabs ─────────────────────────────────────────────
+function createTab(url = HOMEPAGE) {
+  const id = ++tabCounter;
+  const tab = { id, title: 'New Tab', favicon: null, url, webview: null, newtab: null };
+  tabs.push(tab);
+
+  const content = document.getElementById('content');
+
+  if (url === HOMEPAGE) {
+    // New-tab page
+    const page = document.createElement('div');
+    page.className = 'newtab-page';
+    page.innerHTML = `
+      <img src="icon.png" alt="Joy" style="width:110px;height:110px;border-radius:50%;object-fit:cover;box-shadow:0 4px 24px rgba(91,77,232,0.25);"/>
+      <div class="newtab-logo">Joy Browser</div>
+      <div class="newtab-search">
+        <input type="text" placeholder="Search the web or enter a URL…" id="nt-search-${id}" autocomplete="off" spellcheck="false"/>
+        <button id="nt-go-${id}">→</button>
+      </div>
+      <div class="newtab-quicklinks" style="display:none;"></div>
+    `;
+    // New-tab search
+    const goFn = () => {
+      const val = document.getElementById(`nt-search-${id}`).value;
+      navigateTo(normalizeUrl(val), id);
+    };
+    page.querySelector(`#nt-go-${id}`).addEventListener('click', goFn);
+    page.querySelector(`#nt-search-${id}`).addEventListener('keydown', e => { if (e.key === 'Enter') goFn(); });
+    page.querySelectorAll('.quicklink').forEach(a => {
+      a.addEventListener('click', e => { e.preventDefault(); navigateTo(a.dataset.url, id); });
+    });
+    content.appendChild(page);
+    tab.newtab = page;
+  } else {
+    // Real webview
+    const wv = document.createElement('webview');
+    wv.src = url;
+    wv.setAttribute('allowpopups', '');
+    wv.setAttribute('partition', 'persist:browser');
+    content.appendChild(wv);
+    tab.webview = wv;
+    attachWebviewEvents(wv, id);
+  }
+
+  switchTab(id);
+  return id;
+}
+
+function attachWebviewEvents(wv, tabId) {
+  const tab = getTabById(tabId);
+  if (!tab) return;
+
+  wv.addEventListener('dom-ready', () => {
+    tab.webviewReady = true;
+    if (tabId === activeTabId) updateNavButtons();
+  });
+
+  wv.addEventListener('dom-ready', () => {
+    tab.webviewReady = true;
+    if (tabId === activeTabId) updateNavButtons();
+  });
+
+  wv.addEventListener('did-start-loading', () => {
+    if (tabId !== activeTabId) return;
+    setLoading(true);
+  });
+
+  wv.addEventListener('did-stop-loading', () => {
+    setLoading(false);
+    if (!tab) return;
+    const url = wv.getURL();
+    tab.url = url;
+    if (tabId === activeTabId) updateUrlBar(url);
+    renderTabs();
+  });
+
+  wv.addEventListener('did-finish-load', () => {
+    setLoading(false);
+  });
+
+  wv.addEventListener('page-title-updated', e => {
+    tab.title = e.title || 'Untitled';
+    // Update history entry with correct title
+    const hEntry = history.find(h => h.url === tab.url);
+    if (hEntry) { hEntry.title = tab.title; if (activePanel === 'history') renderHistory(); }
+    // Now that we have the real title, sync to any project this tab belongs to
+    if (tab.projectId && tab.url && tab.url !== HOMEPAGE) {
+      const project = projects.find(p => p.id === tab.projectId);
+      if (project) {
+        if (!project.urls) project.urls = [];
+        const existing = project.urls.find(u => u.url === tab.url);
+        if (existing) {
+          existing.title = tab.title; // update stale title
+        } else {
+          project.urls.push({ url: tab.url, title: tab.title });
+        }
+        persistState();
+      }
+    }
+    renderTabs();
+    if (tabId === activeTabId) document.title = tab.title + ' — Joy Browser';
+  });
+
+  wv.addEventListener('page-favicon-updated', e => {
+    if (e.favicons && e.favicons.length) {
+      tab.favicon = e.favicons[0];
+      const hEntry = history.find(h => h.url === tab.url);
+      if (hEntry) hEntry.favicon = tab.favicon;
+    }
+    renderTabs();
+  });
+
+  wv.addEventListener('did-navigate', e => {
+    tab.url = e.url;
+    recordHistory(e.url, tab.title, tab.favicon);
+    if (tabId === activeTabId) {
+      updateUrlBar(e.url);
+      updateNavButtons();
+      if (activePanel === 'notes') renderNotes();
+    }
+  });
+
+  wv.addEventListener('did-navigate-in-page', e => {
+    tab.url = e.url;
+    if (tabId === activeTabId) {
+      updateUrlBar(e.url);
+      if (activePanel === 'notes') renderNotes();
+    }
+  });
+
+  wv.addEventListener('new-window', e => {
+    createTab(e.url);
+  });
+}
+
+function switchTab(id) {
+  activeTabId = id;
+
+  // Hide all content
+  document.querySelectorAll('webview, .newtab-page').forEach(el => {
+    el.classList.remove('active');
+  });
+
+  const tab = getTabById(id);
+  if (!tab) return;
+
+  if (tab.newtab) {
+    tab.newtab.classList.add('active');
+    updateUrlBar('');
+    document.getElementById('url-icon').textContent = '🔍';
+    document.getElementById('security-badge').style.display = 'none';
+  } else if (tab.webview) {
+    tab.webview.classList.add('active');
+    updateUrlBar(tab.url);
+    // canGoBack/canGoForward only work once the webview is ready
+    if (tab.webviewReady) {
+      updateNavButtons();
+    } else {
+      document.getElementById('btn-back').disabled = true;
+      document.getElementById('btn-forward').disabled = true;
+    }
+  }
+
+  renderTabs();
+  document.title = (tab.title || 'New Tab') + ' — Joy Browser';
+  if (activePanel === 'notes') renderNotes();
+}
+
+function closeTab(id) {
+  const idx = tabs.findIndex(t => t.id === id);
+  if (idx === -1) return;
+
+  const tab = tabs[idx];
+  if (tab.webview) tab.webview.remove();
+  if (tab.newtab) tab.newtab.remove();
+  tabs.splice(idx, 1);
+
+  if (tabs.length === 0) {
+    createTab(HOMEPAGE);
+    return;
+  }
+
+  if (activeTabId === id) {
+    const newIdx = Math.min(idx, tabs.length - 1);
+    switchTab(tabs[newIdx].id);
+  } else {
+    renderTabs();
+  }
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function navigateTo(url, tabId) {
+  tabId = tabId || activeTabId;
+  const tab = getTabById(tabId);
+  if (!tab) return;
+
+  if (url === HOMEPAGE) {
+    // Replace with newtab if it was a webview
+    if (tab.webview) {
+      tab.webview.remove();
+      tab.webview = null;
+    }
+    if (!tab.newtab) {
+      // Recreate newtab page
+      const tmpId = tab.id;
+      const content = document.getElementById('content');
+      const page = document.createElement('div');
+      page.className = 'newtab-page';
+      page.innerHTML = `
+        <img src="icon.png" alt="Joy" style="width:110px;height:110px;border-radius:50%;object-fit:cover;box-shadow:0 4px 24px rgba(91,77,232,0.25);"/>
+        <div class="newtab-logo">Joy Browser</div>
+        <div class="newtab-search">
+          <input type="text" placeholder="Search the web or enter a URL…" id="nt-search-${tmpId}" autocomplete="off"/>
+          <button id="nt-go-${tmpId}">→</button>
+        </div>
+        <div class="newtab-quicklinks" style="display:none;">
+        </div>
+      `;
+      const goFn = () => {
+        const val = document.getElementById(`nt-search-${tmpId}`).value;
+        navigateTo(normalizeUrl(val), tmpId);
+      };
+      page.querySelector(`#nt-go-${tmpId}`).addEventListener('click', goFn);
+      page.querySelector(`#nt-search-${tmpId}`).addEventListener('keydown', e => { if (e.key === 'Enter') goFn(); });
+      page.querySelectorAll('.quicklink').forEach(a => {
+        a.addEventListener('click', e => { e.preventDefault(); navigateTo(a.dataset.url, tmpId); });
+      });
+      content.appendChild(page);
+      tab.newtab = page;
+      tab.title = 'New Tab';
+    }
+    switchTab(tabId);
+    return;
+  }
+
+  // Navigate in existing webview or create one
+  if (tab.webview) {
+    tab.webview.src = url;
+    tab.url = url;
+    if (tabId === activeTabId) updateUrlBar(url);
+  } else {
+    // Was a newtab, replace with webview
+    if (tab.newtab) { tab.newtab.remove(); tab.newtab = null; }
+    const wv = document.createElement('webview');
+    wv.src = url;
+    wv.setAttribute('allowpopups', '');
+    wv.setAttribute('partition', 'persist:browser');
+    document.getElementById('content').appendChild(wv);
+    tab.webview = wv;
+    tab.url = url;
+    attachWebviewEvents(wv, tabId);
+    switchTab(tabId);
+  }
+}
+
+// ── URL bar ───────────────────────────────────────────────────────────────────
+function updateUrlBar(url) {
+  const bar = document.getElementById('url-bar');
+  const icon = document.getElementById('url-icon');
+  const badge = document.getElementById('security-badge');
+  bar.value = url;
+
+  if (!url || url === HOMEPAGE) {
+    icon.textContent = '🔍';
+    badge.style.display = 'none';
+    return;
+  }
+  if (url.startsWith('https://')) {
+    icon.textContent = '🔒';
+    badge.textContent = 'HTTPS';
+    badge.className = 'secure';
+    badge.style.display = '';
+  } else {
+    icon.textContent = '⚠️';
+    badge.textContent = 'HTTP';
+    badge.className = 'insecure';
+    badge.style.display = '';
+  }
+}
+
+// ── Nav buttons ───────────────────────────────────────────────────────────────
+function updateNavButtons() {
+  const tab = getTabById(activeTabId);
+  const wv = tab && tab.webview;
+  const canBack    = wv && typeof wv.canGoBack    === 'function' && wv.canGoBack();
+  const canForward = wv && typeof wv.canGoForward === 'function' && wv.canGoForward();
+  document.getElementById('btn-back').disabled    = !canBack;
+  document.getElementById('btn-forward').disabled = !canForward;
+}
+
+// ── Loading bar ───────────────────────────────────────────────────────────────
+let loadTimer;
+function setLoading(on) {
+  const bar = document.getElementById('loading-bar');
+  clearTimeout(loadTimer);
+  if (on) {
+    bar.className = 'loading';
+  } else {
+    bar.className = 'done';
+    loadTimer = setTimeout(() => { bar.className = ''; }, 700);
+  }
+}
+
+// ── Event wiring ──────────────────────────────────────────────────────────────
+document.getElementById('btn-close').addEventListener('click',    () => window.electronAPI.close());
+document.getElementById('btn-maximize').addEventListener('click', () => window.electronAPI.maximize());
+
+document.getElementById('new-tab-btn').addEventListener('click', () => createTab(HOMEPAGE));
+
+document.getElementById('btn-back').addEventListener('click', () => {
+  const tab = getTabById(activeTabId);
+  if (tab && tab.webview && tab.webview.canGoBack()) tab.webview.goBack();
+});
+document.getElementById('btn-forward').addEventListener('click', () => {
+  const tab = getTabById(activeTabId);
+  if (tab && tab.webview && tab.webview.canGoForward()) tab.webview.goForward();
+});
+document.getElementById('btn-reload').addEventListener('click', () => {
+  const tab = getTabById(activeTabId);
+  if (tab && tab.webview) tab.webview.reload();
+});
+document.getElementById('btn-home').addEventListener('click', () => {
+  navigateTo(HOMEPAGE);
+});
+
+const urlBar = document.getElementById('url-bar');
+urlBar.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const url = normalizeUrl(urlBar.value);
+    navigateTo(url);
+    urlBar.blur();
+  }
+  if (e.key === 'Escape') { urlBar.blur(); }
+});
+urlBar.addEventListener('focus', () => urlBar.select());
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 't') { e.preventDefault(); createTab(HOMEPAGE); }
+  if (e.ctrlKey && e.key === 'w') { e.preventDefault(); closeTab(activeTabId); }
+  if (e.ctrlKey && e.key === 'l') { e.preventDefault(); urlBar.focus(); urlBar.select(); }
+  if (e.ctrlKey && e.key === 'r') { e.preventDefault(); const tab = getTabById(activeTabId); if (tab && tab.webview) tab.webview.reload(); }
+});
+
+// ── Project Picker ────────────────────────────────────────────────────────────
+let pickerTargetTabId = null;
+
+function openProjectPicker(tabId, dotEl) {
+  const picker = document.getElementById('project-picker');
+  pickerTargetTabId = tabId;
+  const tab = getTabById(tabId);
+
+  picker.innerHTML = '';
+
+  if (projects.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'picker-empty';
+    empty.textContent = 'No projects yet — create one below!';
+    picker.appendChild(empty);
+  } else {
+    projects.forEach(p => {
+      const item = document.createElement('div');
+      item.className = 'picker-item' + (tab.projectId === p.id ? ' active-project' : '');
+      const dot = document.createElement('span');
+      dot.className = 'picker-item-dot';
+      dot.style.background = p.color || '#7c6af7';
+      const label = document.createElement('span');
+      label.textContent = p.name;
+      item.appendChild(dot);
+      item.appendChild(label);
+      item.addEventListener('click', () => { assignTabToProject(tabId, p.id); closePicker(); });
+      picker.appendChild(item);
+    });
+
+    if (tab.projectId) {
+      const unassign = document.createElement('div');
+      unassign.className = 'picker-item picker-unassign';
+      unassign.textContent = '✕ Remove from project';
+      unassign.addEventListener('click', () => { assignTabToProject(tabId, null); closePicker(); });
+      picker.appendChild(unassign);
+    }
+  }
+
+  // Position below the dot
+  const rect = dotEl.getBoundingClientRect();
+  picker.style.top  = (rect.bottom + 6) + 'px';
+  picker.style.left = (rect.left - 60) + 'px';
+  picker.classList.add('open');
+}
+
+function closePicker() {
+  document.getElementById('project-picker').classList.remove('open');
+  pickerTargetTabId = null;
+}
+
+function assignTabToProject(tabId, projectId) {
+  const tab = getTabById(tabId);
+  if (!tab) return;
+
+  // Remove tab from any previous project
+  projects.forEach(p => {
+    if (p.urls && tab.url) {
+      p.urls = p.urls.filter(u => u.url !== tab.url);
+    }
+  });
+
+  tab.projectId = projectId;
+
+  // Add URL to the new project
+  if (projectId) {
+    const project = projects.find(p => p.id === projectId);
+    if (project && tab.url && tab.url !== HOMEPAGE) {
+      if (!project.urls) project.urls = [];
+      if (!project.urls.find(u => u.url === tab.url)) {
+        project.urls.push({ url: tab.url, title: tab.title || tab.url });
+      }
+    }
+  }
+
+  renderTabs();
+  renderProjects();
+  persistState();
+}
+
+// Close picker when clicking outside
+document.addEventListener('click', e => {
+  const picker = document.getElementById('project-picker');
+  if (!picker.contains(e.target) && !e.target.classList.contains('tab-project-dot')) {
+    closePicker();
+  }
+});
+
+// ── Projects Bar ──────────────────────────────────────────────────────────────
+let projects = [];
+let activeProjectId = null;
+let projectCounter = 0;
+
+function renderProjects() {
+  const list = document.getElementById('projects-list');
+  list.innerHTML = '';
+  projects.forEach(p => {
+    const urlCount = (p.urls || []).length;
+    const color = p.color || '#7c6af7';
+    const isActive = p.id === activeProjectId;
+
+    const tab = document.createElement('div');
+    tab.className = 'project-tab' + (isActive ? ' active' : '');
+    if (isActive) {
+      tab.style.borderColor = color;
+      tab.style.boxShadow = `0 0 0 1px ${color} inset`;
+      tab.style.background = `${color}18`;
+    }
+
+    // Color dot
+    const colorDot = document.createElement('span');
+    colorDot.style.cssText = `
+      width: 7px; height: 7px; border-radius: 50%;
+      background: ${color}; flex-shrink: 0; pointer-events: none;
+      display: inline-block;
+    `;
+
+    const label = document.createElement('span');
+    label.textContent = p.name;
+    label.style.pointerEvents = 'none';
+
+    const badge = document.createElement('span');
+    badge.textContent = urlCount > 0 ? urlCount : '';
+    badge.style.cssText = `
+      font-size: 10px; font-weight: 600; opacity: 0.7;
+      background: rgba(0,0,0,0.12); border-radius: 4px;
+      padding: 1px 5px; pointer-events: none;
+      display: ${urlCount > 0 ? 'inline' : 'none'};
+    `;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'project-tab-close';
+    closeBtn.innerHTML = '✕';
+    closeBtn.title = 'Remove project';
+    closeBtn.addEventListener('click', e => { e.stopPropagation(); removeProject(p.id); });
+
+    tab.appendChild(colorDot);
+    tab.appendChild(label);
+    tab.appendChild(badge);
+    tab.appendChild(closeBtn);
+
+    // Use a timer to distinguish single click from double click
+    let clickTimer = null;
+    tab.addEventListener('click', (e) => {
+      if (e.target.classList.contains('project-tab-close')) return;
+      clearTimeout(clickTimer);
+      clickTimer = setTimeout(() => {
+        // Set active without re-rendering first
+        activeProjectId = p.id;
+        // Re-render to update highlight
+        renderProjects();
+        const project = projects.find(pr => pr.id === p.id);
+        if (!project || !project.urls || project.urls.length === 0) return;
+        if (project.urls.length === 1) {
+          openUrlForProject(project.urls[0], p.id);
+        } else {
+          openUrlPicker(project, document.querySelector(`.project-tab[data-pid="${p.id}"]`) || document.getElementById('projects-bar'));
+        }
+      }, 220);
+    });
+    tab.dataset.pid = p.id;
+    tab.addEventListener('dblclick', (e) => {
+      if (e.target.classList.contains('project-tab-close')) return;
+      clearTimeout(clickTimer);
+      startRename(p.id, tab, label);
+    });
+
+    list.appendChild(tab);
+  });
+}
+
+const PROJECT_COLORS = [
+  '#7c6af7', '#f97316', '#22c55e', '#ef4444',
+  '#3b82f6', '#ec4899', '#f59e0b', '#14b8a6',
+  '#8b5cf6', '#06b6d4',
+];
+let colorIndex = 0;
+
+function nextProjectColor() {
+  const color = PROJECT_COLORS[colorIndex % PROJECT_COLORS.length];
+  colorIndex++;
+  return color;
+}
+
+function addProject(name) {
+  const id = ++projectCounter;
+  projects.push({ id, name: name || 'New Project', color: nextProjectColor() });
+  setActiveProject(id);
+  // Immediately start renaming the new tab
+  setTimeout(() => {
+    const list = document.getElementById('projects-list');
+    const tabs = list.querySelectorAll('.project-tab');
+    const newTab = tabs[tabs.length - 1];
+    if (!newTab) return;
+    const label = newTab.querySelector('span');
+    startRename(id, newTab, label);
+  }, 0);
+}
+
+function removeProject(id) {
+  // Unassign any tabs from this project
+  tabs.forEach(t => { if (t.projectId === id) t.projectId = null; });
+  projects = projects.filter(p => p.id !== id);
+  if (activeProjectId === id) activeProjectId = projects.length ? projects[projects.length - 1].id : null;
+  renderProjects();
+  renderTabs();
+  persistState();
+}
+
+function openUrlForProject(entry, projectId) {
+  const existing = tabs.find(t => t.url === entry.url);
+  if (existing) {
+    switchTab(existing.id);
+  } else {
+    const id = ++tabCounter;
+    const tab = { id, title: 'New Tab', favicon: null, url: entry.url, webview: null, newtab: null, projectId };
+    tabs.push(tab);
+    const content = document.getElementById('content');
+    const wv = document.createElement('webview');
+    wv.src = entry.url;
+    wv.setAttribute('allowpopups', '');
+    wv.setAttribute('partition', 'persist:browser');
+    content.appendChild(wv);
+    tab.webview = wv;
+    attachWebviewEvents(wv, id);
+    switchTab(id);
+  }
+}
+
+function openUrlPicker(project, anchorEl) {
+  // Remove any existing picker
+  const existing = document.getElementById('url-picker-popup');
+  if (existing) existing.remove();
+
+  const picker = document.createElement('div');
+  picker.id = 'url-picker-popup';
+  picker.style.cssText = `
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+    z-index: 99999;
+    min-width: 280px;
+    max-width: 380px;
+    padding: 6px;
+    font-family: 'DM Sans', sans-serif;
+  `;
+
+  const header = document.createElement('div');
+  header.style.cssText = 'font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;padding:6px 10px 4px;';
+  header.textContent = project.name;
+  picker.appendChild(header);
+
+  project.urls.forEach(entry => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;align-items:center;padding:6px 8px;border-radius:6px;cursor:pointer;gap:6px;';
+    item.onmouseover = () => { item.style.background = 'var(--surface2)'; removeBtn.style.opacity = '1'; };
+    item.onmouseout  = () => { item.style.background = ''; removeBtn.style.opacity = '0'; };
+
+    const textWrap = document.createElement('div');
+    textWrap.style.cssText = 'display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;';
+
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+    title.textContent = entry.title || entry.url;
+
+    const url = document.createElement('div');
+    url.style.cssText = 'font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:monospace;';
+    url.textContent = entry.url;
+
+    textWrap.appendChild(title);
+    textWrap.appendChild(url);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = '✕';
+    removeBtn.style.cssText = `
+      flex-shrink:0; width:18px; height:18px; border-radius:4px;
+      border:none; background:transparent; color:var(--text-dim);
+      font-size:11px; cursor:pointer; display:flex; align-items:center;
+      justify-content:center; opacity:0; transition:opacity 0.1s, background 0.1s;
+      padding:0;
+    `;
+    removeBtn.onmouseover = () => { removeBtn.style.background = 'rgba(239,68,68,0.12)'; removeBtn.style.color = '#ef4444'; };
+    removeBtn.onmouseout  = () => { removeBtn.style.background = 'transparent'; removeBtn.style.color = 'var(--text-dim)'; };
+    removeBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      project.urls = project.urls.filter(u => u.url !== entry.url);
+      // Also unassign any open tab with this url
+      tabs.forEach(t => { if (t.url === entry.url && t.projectId === project.id) t.projectId = null; });
+      persistState();
+      renderTabs();
+      renderProjects();
+      // Rebuild picker in place
+      picker.remove();
+      if (project.urls.length > 0) openUrlPicker(project, anchorEl);
+    });
+
+    item.appendChild(textWrap);
+    item.appendChild(removeBtn);
+    item.addEventListener('mousedown', (e) => {
+      if (e.target === removeBtn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      picker.remove();
+      openUrlForProject(entry, project.id);
+    });
+    picker.appendChild(item);
+  });
+
+  // Divider
+  const divider = document.createElement('div');
+  divider.style.cssText = 'border-top:1px solid var(--border);margin:4px 0;';
+  picker.appendChild(divider);
+
+  const openAll = document.createElement('div');
+  openAll.style.cssText = 'font-size:12px;color:var(--accent);font-weight:500;text-align:center;padding:7px 10px;border-radius:6px;cursor:pointer;';
+  openAll.textContent = '↑ Open all tabs';
+  openAll.onmouseover = () => { openAll.style.background = 'var(--surface2)'; };
+  openAll.onmouseout  = () => { openAll.style.background = ''; };
+  openAll.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    picker.remove();
+    project.urls.forEach(entry => openUrlForProject(entry, project.id));
+  });
+  picker.appendChild(openAll);
+
+  // Position above the anchor
+  const rect = anchorEl.getBoundingClientRect();
+  picker.style.left = Math.min(rect.left, window.innerWidth - 400) + 'px';
+  picker.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+  document.body.appendChild(picker);
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('mousedown', function handler(e) {
+      if (!picker.contains(e.target)) {
+        picker.remove();
+        document.removeEventListener('mousedown', handler);
+      }
+    });
+  }, 0);
+}
+
+function closeUrlPicker() {
+  const picker = document.getElementById('url-picker-popup');
+  if (picker) picker.remove();
+}
+
+function setActiveProject(id) {
+  activeProjectId = id;
+  renderProjects();
+}
+
+function startRename(id, tabEl, labelEl) {
+  const project = projects.find(p => p.id === id);
+  if (!project) return;
+  const input = document.createElement('input');
+  input.className = 'rename-input';
+  input.value = project.name;
+  tabEl.replaceChild(input, labelEl);
+  input.focus();
+  input.select();
+  const finish = () => {
+    const newName = input.value.trim() || project.name;
+    project.name = newName;
+    renderProjects();
+    persistState();
+  };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = project.name; input.blur(); } });
+}
+
+document.getElementById('new-project-btn').addEventListener('click', () => addProject());
+
+// ── Persistence ───────────────────────────────────────────────────────────────
+// ── Panel toggles ─────────────────────────────────────────────────────────────
+let activePanel = null; // 'comments' | 'notes' | null
+
+function getStateToSave() {
+  return {
+    projects: projects.map(p => ({ id: p.id, name: p.name, urls: p.urls || [], color: p.color || '#7c6af7' })),
+    projectCounter,
+    colorIndex,
+    visionLevel: window._visionLevel || 'good',
+    notes,
+    history,
+    activePanel,
+    savedTabs: tabs.filter(t => t.url && t.url !== HOMEPAGE).map(t => ({
+      url: t.url,
+      title: t.title,
+      favicon: t.favicon,
+      projectId: t.projectId,
+      isActive: t.id === activeTabId,
+    })),
+  };
+}
+
+function persistState() {
+  const state = getStateToSave();
+  console.log('[persistState] activePanel =', state.activePanel, '| full state keys:', Object.keys(state));
+  window.electronAPI.saveState(state);
+}
+
+function setActivePanel(panel) {
+  const commentsSidebar = document.getElementById('right-sidebar');
+  const notesSidebar    = document.getElementById('notes-sidebar');
+  const historySidebar  = document.getElementById('history-sidebar');
+  const commentsBtn     = document.getElementById('toggle-comments-btn');
+  const notesBtn        = document.getElementById('toggle-notes-btn');
+  const historyBtn      = document.getElementById('toggle-history-btn');
+
+  if (activePanel === panel) {
+    activePanel = null;
+  } else {
+    activePanel = panel;
+  }
+
+  commentsSidebar.style.display = activePanel === 'comments' ? '' : 'none';
+  notesSidebar.style.display    = activePanel === 'notes'    ? '' : 'none';
+  historySidebar.style.display  = activePanel === 'history'  ? '' : 'none';
+  if (activePanel === 'notes')   renderNotes();
+  if (activePanel === 'history') renderHistory();
+
+  const activeStyle    = 'rgba(91,77,232,0.1)';
+  const inactiveBg     = 'transparent';
+  const activeBorder   = 'var(--accent)';
+  const inactiveBorder = 'var(--border)';
+  const activeColor    = 'var(--accent)';
+  const inactiveColor  = 'var(--text-dim)';
+
+  commentsBtn.style.background  = activePanel === 'comments' ? activeStyle   : inactiveBg;
+  commentsBtn.style.borderColor = activePanel === 'comments' ? activeBorder  : inactiveBorder;
+  commentsBtn.style.color       = activePanel === 'comments' ? activeColor   : inactiveColor;
+
+  notesBtn.style.background     = activePanel === 'notes'    ? activeStyle   : inactiveBg;
+  notesBtn.style.borderColor    = activePanel === 'notes'    ? activeBorder  : inactiveBorder;
+  notesBtn.style.color          = activePanel === 'notes'    ? activeColor   : inactiveColor;
+
+  historyBtn.style.background   = activePanel === 'history'  ? activeStyle   : inactiveBg;
+  historyBtn.style.borderColor  = activePanel === 'history'  ? activeBorder  : inactiveBorder;
+  historyBtn.style.color        = activePanel === 'history'  ? activeColor   : inactiveColor;
+
+  if (activePanel) localStorage.setItem('activePanel', activePanel);
+  else localStorage.removeItem('activePanel');
+
+  persistState();
+}
+
+document.getElementById('toggle-comments-btn').addEventListener('click', () => setActivePanel('comments'));
+document.getElementById('toggle-notes-btn').addEventListener('click',    () => setActivePanel('notes'));
+document.getElementById('toggle-history-btn').addEventListener('click',  () => setActivePanel('history'));
+
+document.getElementById('history-search').addEventListener('input', e => renderHistory(e.target.value));
+document.getElementById('history-clear-btn').addEventListener('click', () => {
+  history = [];
+  persistState();
+  renderHistory();
+});
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+let visionSetting = localStorage && false; // stored in state
+const VISION_SCALES = { good: 1, notbest: 1.1, bad: 1.2 };
+
+function applyVision(level) {
+  const scale = VISION_SCALES[level];
+  window.electronAPI.setZoom(scale);
+}
+
+document.getElementById('settings-btn').addEventListener('click', () => {
+  const existing = document.getElementById('settings-popup');
+  if (existing) { existing.remove(); return; }
+
+  const currentVision = window._visionLevel || 'good';
+
+  const popup = document.createElement('div');
+  popup.id = 'settings-popup';
+  popup.style.cssText = `
+    position: fixed; top: 60px; right: 12px; z-index: 99999;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    padding: 16px; min-width: 280px; font-family: 'DM Sans', sans-serif;
+  `;
+
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;letter-spacing:0.04em;text-transform:uppercase;padding-right:24px;';
+  title.textContent = '⚙️ Settings';
+  popup.appendChild(title);
+
+  const section = document.createElement('div');
+  section.style.cssText = 'font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;';
+  section.textContent = '👁️ Vision & Text Size';
+  popup.appendChild(section);
+
+  const options = [
+    { key: 'good',    label: 'My vision is good',        desc: 'Default size' },
+    { key: 'notbest', label: 'My vision is not the best', desc: 'Everything 10% larger' },
+    { key: 'bad',     label: 'My vision is pretty bad',   desc: 'Everything 20% larger' },
+  ];
+
+  options.forEach(opt => {
+    const item = document.createElement('div');
+    const isActive = currentVision === opt.key;
+    item.style.cssText = `
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-radius: 8px; cursor: pointer; margin-bottom: 4px;
+      border: 1.5px solid ${isActive ? 'var(--accent)' : 'var(--border)'};
+      background: ${isActive ? 'rgba(91,77,232,0.07)' : 'transparent'};
+      transition: border-color 0.15s, background 0.15s;
+    `;
+    item.onmouseover = () => { if (currentVision !== opt.key) item.style.background = 'var(--surface2)'; };
+    item.onmouseout  = () => { if (currentVision !== opt.key) item.style.background = 'transparent'; };
+
+    const radio = document.createElement('div');
+    radio.style.cssText = `
+      width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid ${isActive ? 'var(--accent)' : 'var(--border)'};
+      background: ${isActive ? 'var(--accent)' : 'transparent'};
+      display: flex; align-items: center; justify-content: center;
+    `;
+    if (isActive) {
+      const dot = document.createElement('div');
+      dot.style.cssText = 'width:5px;height:5px;border-radius:50%;background:#fff;';
+      radio.appendChild(dot);
+    }
+
+    const text = document.createElement('div');
+    text.innerHTML = `<div style="font-size:13px;color:var(--text);font-weight:500;">${opt.label}</div><div style="font-size:11px;color:var(--text-dim);margin-top:1px;">${opt.desc}</div>`;
+
+    item.appendChild(radio); item.appendChild(text);
+    item.addEventListener('click', () => {
+      window._visionLevel = opt.key;
+      applyVision(opt.key);
+      popup.remove();
+      // Save to state
+      persistState();
+    });
+    popup.appendChild(item);
+  });
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'position:absolute;top:10px;right:10px;width:20px;height:20px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;font-size:12px;border-radius:4px;';
+  closeBtn.addEventListener('click', () => popup.remove());
+  popup.appendChild(closeBtn);
+
+  document.body.appendChild(popup);
+
+  setTimeout(() => {
+    document.addEventListener('mousedown', function handler(e) {
+      if (!popup.contains(e.target) && e.target.id !== 'settings-btn') {
+        popup.remove();
+        document.removeEventListener('mousedown', handler);
+      }
+    });
+  }, 0);
+});
+
+// ── Notes ─────────────────────────────────────────────────────────────────────
+let notes = {}; // { url: [ { text, ts } ] }
+
+function getCurrentUrl() {
+  const tab = getTabById(activeTabId);
+  return (tab && tab.url && tab.url !== HOMEPAGE) ? tab.url : null;
+}
+
+function renderNotes() {
+  const url = getCurrentUrl();
+  const body = document.getElementById('notes-body');
+  const label = document.getElementById('notes-url-label');
+  const input = document.getElementById('note-input');
+
+  if (!url) {
+    label.textContent = 'No page open';
+    body.innerHTML = `<div class="comment-placeholder"><div class="comment-placeholder-icon" style="font-size:28px;opacity:0.4;">📝</div><div class="comment-placeholder-text" style="font-size:12px;">Open a web page to add notes.</div></div>`;
+    input.disabled = true;
+    input.placeholder = 'Open a page first…';
+    return;
+  }
+
+  input.disabled = false;
+  input.placeholder = 'Add a note…';
+
+  try { label.textContent = new URL(url).hostname; } catch { label.textContent = url; }
+
+  const pageNotes = notes[url] || [];
+  body.innerHTML = '';
+
+  if (pageNotes.length === 0) {
+    body.innerHTML = `<div class="comment-placeholder"><div class="comment-placeholder-icon" style="font-size:28px;opacity:0.4;">📝</div><div class="comment-placeholder-text" style="font-size:12px;">No notes yet for this page.</div></div>`;
+    return;
+  }
+
+  let dragSrcIdx = null;
+  let dropIndicator = null;
+
+  pageNotes.forEach((note, idx) => {
+    const el = document.createElement('div');
+    el.style.cssText = `background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;position:relative;opacity:${note.done ? '0.6' : '1'};transition:opacity 0.2s, box-shadow 0.15s;`;
+    el.dataset.idx = idx;
+
+    // Drag handle + drag behaviour (only for un-struck notes)
+    if (!note.done) {
+      el.draggable = true;
+      el.style.cursor = 'grab';
+
+      el.addEventListener('dragstart', e => {
+        dragSrcIdx = idx;
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => { el.style.opacity = '0.4'; }, 0);
+      });
+      el.addEventListener('dragend', () => {
+        el.style.opacity = '1';
+        if (dropIndicator) { dropIndicator.remove(); dropIndicator = null; }
+        dragSrcIdx = null;
+      });
+      el.addEventListener('dragover', e => {
+        e.preventDefault();
+        const target = e.currentTarget;
+        if (dragSrcIdx === null || target.dataset.idx == dragSrcIdx) return;
+        const targetIdx = parseInt(target.dataset.idx);
+        if (pageNotes[targetIdx] && pageNotes[targetIdx].done) return;
+        // Show drop indicator
+        if (dropIndicator) dropIndicator.remove();
+        dropIndicator = document.createElement('div');
+        dropIndicator.style.cssText = 'height:2px;background:var(--accent);border-radius:2px;margin:2px 0;';
+        const rect = target.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          body.insertBefore(dropIndicator, target);
+        } else {
+          target.after(dropIndicator);
+        }
+      });
+      el.addEventListener('drop', e => {
+        e.preventDefault();
+        if (dragSrcIdx === null) return;
+        const targetIdx = parseInt(e.currentTarget.dataset.idx);
+        if (targetIdx === dragSrcIdx) return;
+        if (pageNotes[targetIdx] && pageNotes[targetIdx].done) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const insertAfter = e.clientY >= midY;
+        const [moved] = notes[url].splice(dragSrcIdx, 1);
+        let newIdx = notes[url].indexOf(pageNotes[targetIdx]);
+        if (insertAfter) newIdx += 1;
+        notes[url].splice(newIdx, 0, moved);
+        persistState();
+        renderNotes();
+      });
+    }
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:flex-start;gap:8px;padding-right:18px;';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = !!note.done;
+    checkbox.style.cssText = 'margin-top:2px;flex-shrink:0;width:14px;height:14px;accent-color:var(--accent);cursor:pointer;';
+    checkbox.addEventListener('change', () => {
+      const note = notes[url].splice(idx, 1)[0];
+      note.done = checkbox.checked;
+      if (note.done) {
+        notes[url].push(note);
+      } else {
+        notes[url].unshift(note);
+      }
+      persistState();
+      renderNotes();
+    });
+
+    const text = document.createElement('div');
+    text.style.cssText = `font-size:12px;color:var(--text);line-height:1.5;word-break:break-word;${note.done ? 'text-decoration:line-through;color:var(--text-dim);' : ''}`;
+    text.textContent = note.text;
+
+    row.appendChild(checkbox);
+    row.appendChild(text);
+
+    const ts = document.createElement('div');
+    ts.style.cssText = 'font-size:10px;color:var(--text-dim);margin-top:4px;padding-left:22px;';
+    ts.textContent = new Date(note.ts).toLocaleString();
+
+    const del = document.createElement('button');
+    del.textContent = '✕';
+    del.style.cssText = 'position:absolute;top:6px;right:6px;width:16px;height:16px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;font-size:10px;border-radius:3px;opacity:0;transition:opacity 0.1s;padding:0;';
+    el.onmouseover = () => { del.style.opacity = '1'; };
+    el.onmouseout  = () => { del.style.opacity = '0'; };
+    del.addEventListener('click', () => {
+      notes[url].splice(idx, 1);
+      if (notes[url].length === 0) delete notes[url];
+      persistState();
+      renderNotes();
+    });
+
+    el.appendChild(row); el.appendChild(ts); el.appendChild(del);
+    body.appendChild(el);
+  });
+
+  // Clear drop indicator if dragging out of the list
+  body.addEventListener('dragleave', e => {
+    if (!body.contains(e.relatedTarget) && dropIndicator) {
+      dropIndicator.remove();
+      dropIndicator = null;
+    }
+  }, { once: true });
+}
+
+function addNote() {
+  const url = getCurrentUrl();
+  if (!url) return;
+  const input = document.getElementById('note-input');
+  const text = input.value.trim();
+  if (!text) return;
+  if (!notes[url]) notes[url] = [];
+  const firstDoneIdx = notes[url].findIndex(n => n.done);
+  const insertAt = firstDoneIdx === -1 ? notes[url].length : firstDoneIdx;
+  notes[url].splice(insertAt, 0, { text, ts: Date.now() });
+  input.value = '';
+  persistState();
+  renderNotes();
+}
+
+document.getElementById('note-submit').addEventListener('click', addNote);
+document.getElementById('note-input').addEventListener('keydown', e => { if (e.key === 'Enter') addNote(); });
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+// ── History ───────────────────────────────────────────────────────────────────
+let history = []; // [ { url, title, favicon, ts } ]
+const HISTORY_MAX = 500;
+
+function recordHistory(url, title, favicon) {
+  if (!url || url === HOMEPAGE) return;
+  // Remove existing duplicate
+  const dupIdx = history.findIndex(h => h.url === url);
+  if (dupIdx !== -1) history.splice(dupIdx, 1);
+  history.unshift({ url, title: title || url, favicon: favicon || null, ts: Date.now() });
+  if (history.length > HISTORY_MAX) history = history.slice(0, HISTORY_MAX);
+  if (activePanel === 'history') renderHistory();
+  persistState();
+}
+
+function renderHistory(filter) {
+  const body = document.getElementById('history-body');
+  const searchVal = filter !== undefined ? filter : (document.getElementById('history-search')?.value || '');
+  const q = searchVal.trim().toLowerCase();
+  const entries = q ? history.filter(h => h.title.toLowerCase().includes(q) || h.url.toLowerCase().includes(q)) : history;
+
+  body.innerHTML = '';
+
+  if (entries.length === 0) {
+    body.innerHTML = `<div class="comment-placeholder"><div class="comment-placeholder-icon" style="font-size:28px;opacity:0.4;">🕘</div><div class="comment-placeholder-text" style="font-size:12px;">${q ? 'No results.' : 'No history yet.'}</div></div>`;
+    return;
+  }
+
+  // Group by date
+  const groups = {};
+  entries.forEach(h => {
+    const d = new Date(h.ts);
+    const today = new Date();
+    const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+    let label;
+    if (d.toDateString() === today.toDateString()) label = 'Today';
+    else if (d.toDateString() === yesterday.toDateString()) label = 'Yesterday';
+    else label = d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    if (!groups[label]) groups[label] = [];
+    groups[label].push(h);
+  });
+
+  Object.entries(groups).forEach(([label, items]) => {
+    const groupHeader = document.createElement('div');
+    groupHeader.style.cssText = 'font-size:10px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;padding:8px 2px 4px;';
+    groupHeader.textContent = label;
+    body.appendChild(groupHeader);
+
+    items.forEach(h => {
+      const el = document.createElement('div');
+      el.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background 0.1s;';
+      el.onmouseover = () => { el.style.background = 'var(--surface2)'; };
+      el.onmouseout  = () => { el.style.background = ''; };
+      el.addEventListener('click', () => navigateTo(h.url));
+
+      const favicon = document.createElement('img');
+      favicon.src = h.favicon || `https://www.google.com/s2/favicons?domain=${new URL(h.url).hostname}&sz=16`;
+      favicon.style.cssText = 'width:14px;height:14px;border-radius:2px;flex-shrink:0;object-fit:contain;';
+      favicon.onerror = () => { favicon.style.display = 'none'; };
+
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;';
+
+      const title = document.createElement('div');
+      title.style.cssText = 'font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      title.textContent = h.title;
+
+      const meta = document.createElement('div');
+      meta.style.cssText = 'display:flex;gap:6px;align-items:center;';
+
+      const url = document.createElement('div');
+      url.style.cssText = 'font-size:10px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:monospace;flex:1;min-width:0;';
+      url.textContent = h.url;
+
+      const time = document.createElement('div');
+      time.style.cssText = 'font-size:10px;color:var(--text-dim);flex-shrink:0;';
+      time.textContent = new Date(h.ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+      meta.appendChild(url);
+      meta.appendChild(time);
+      info.appendChild(title);
+      info.appendChild(meta);
+      el.appendChild(favicon);
+      el.appendChild(info);
+      body.appendChild(el);
+    });
+  });
+}
+
+async function boot() {
+  const saved = await window.electronAPI.loadState();
+  console.log('boot: loaded state =', JSON.stringify(saved));
+  if (saved) {
+    if (saved.projects && saved.projects.length > 0) {
+      projects = saved.projects.map(p => ({ ...p, urls: p.urls || [], color: p.color || '#7c6af7' }));
+      projectCounter = saved.projectCounter || saved.projects.length;
+      colorIndex = saved.colorIndex || projects.length;
+      renderProjects();
+    }
+    if (saved.visionLevel) { window._visionLevel = saved.visionLevel; applyVision(saved.visionLevel); }
+    if (saved.notes) notes = saved.notes;
+    if (saved.history) history = saved.history;
+
+    // Restore tabs first
+    if (saved.savedTabs && saved.savedTabs.length > 0) {
+      let activeRestoredId = null;
+      saved.savedTabs.forEach(t => {
+        const id = createTab(t.url);
+        const tab = getTabById(id);
+        if (tab) {
+          if (t.title)   tab.title   = t.title;
+          if (t.favicon) tab.favicon = t.favicon;
+          if (t.projectId) tab.projectId = t.projectId;
+          if (t.isActive) activeRestoredId = id;
+        }
+      });
+      if (activeRestoredId) switchTab(activeRestoredId);
+      renderTabs();
+    } else {
+      createTab(HOMEPAGE);
+    }
+
+    const savedPanel = saved.activePanel || localStorage.getItem('activePanel');
+    console.log('[boot] savedPanel =', savedPanel, '| saved.activePanel =', saved.activePanel);
+    if (savedPanel) {
+      try {
+        console.log('[boot] calling setActivePanel with:', savedPanel);
+        console.log('[boot] activePanel before call:', activePanel);
+        setActivePanel(savedPanel);
+        console.log('[boot] setActivePanel done, activePanel now:', activePanel);
+        const ns = document.getElementById('notes-sidebar');
+        console.log('[boot] notes-sidebar display after setActivePanel:', ns ? ns.style.display : 'ELEMENT NOT FOUND');
+      } catch(err) {
+        console.error('[boot] setActivePanel threw:', err);
+      }
+    }
+    return;
+  }
+  createTab(HOMEPAGE);
+  const savedPanel = localStorage.getItem('activePanel');
+  console.log('[boot] no saved state, localStorage panel =', savedPanel);
+  if (savedPanel) setActivePanel(savedPanel);
+}
+boot();
+</script>
+</body>
+</html>
