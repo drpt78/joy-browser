@@ -899,6 +899,10 @@
     }
 
     /* ── IMPROVED NEW TAB ── */
+    .newtab-top-spacer {
+      height: 80px;
+      flex-shrink: 0;
+    }
     .newtab-clock {
       font-size: 64px;
       font-weight: 300;
@@ -1327,19 +1331,14 @@ function createTab(url = HOMEPAGE) {
     const page = document.createElement('div');
     page.className = 'newtab-page';
     page.innerHTML = `
+      <div class="newtab-top-spacer"></div>
+      <div class="newtab-logo">joy</div>
       <div class="newtab-clock" id="nt-clock-${id}">00:00</div>
       <div class="newtab-date" id="nt-date-${id}"></div>
       <div class="newtab-greeting" id="nt-greeting-${id}"></div>
       <div class="newtab-search">
         <input type="text" placeholder="Search the web or enter a URL…" id="nt-search-${id}" autocomplete="off" spellcheck="false"/>
         <button id="nt-go-${id}">→</button>
-      </div>
-      <div class="newtab-quicklinks">
-        <a class="quicklink" data-url="https://github.com"><span class="quicklink-icon">🐙</span>GitHub</a>
-        <a class="quicklink" data-url="https://news.ycombinator.com"><span class="quicklink-icon">🟠</span>HN</a>
-        <a class="quicklink" data-url="https://www.youtube.com"><span class="quicklink-icon">▶️</span>YouTube</a>
-        <a class="quicklink" data-url="https://claude.ai"><span class="quicklink-icon">🤖</span>Claude</a>
-        <a class="quicklink" data-url="https://www.wikipedia.org"><span class="quicklink-icon">📖</span>Wikipedia</a>
       </div>
       <button class="newtab-wallpaper-btn" id="nt-wp-btn-${id}" title="Change wallpaper">🖼️</button>
     `;
@@ -1533,19 +1532,14 @@ function navigateTo(url, tabId) {
       const page = document.createElement('div');
       page.className = 'newtab-page';
       page.innerHTML = `
+        <div class="newtab-top-spacer"></div>
+        <div class="newtab-logo">joy</div>
         <div class="newtab-clock" id="nt-clock-${tmpId}">00:00</div>
         <div class="newtab-date" id="nt-date-${tmpId}"></div>
         <div class="newtab-greeting" id="nt-greeting-${tmpId}"></div>
         <div class="newtab-search">
           <input type="text" placeholder="Search the web or enter a URL…" id="nt-search-${tmpId}" autocomplete="off"/>
           <button id="nt-go-${tmpId}">→</button>
-        </div>
-        <div class="newtab-quicklinks">
-          <a class="quicklink" data-url="https://github.com"><span class="quicklink-icon">🐙</span>GitHub</a>
-          <a class="quicklink" data-url="https://news.ycombinator.com"><span class="quicklink-icon">🟠</span>HN</a>
-          <a class="quicklink" data-url="https://www.youtube.com"><span class="quicklink-icon">▶️</span>YouTube</a>
-          <a class="quicklink" data-url="https://claude.ai"><span class="quicklink-icon">🤖</span>Claude</a>
-          <a class="quicklink" data-url="https://www.wikipedia.org"><span class="quicklink-icon">📖</span>Wikipedia</a>
         </div>
         <button class="newtab-wallpaper-btn" id="nt-wp-btn-${tmpId}" title="Change wallpaper">🖼️</button>
       `;
