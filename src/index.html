@@ -941,7 +941,7 @@
     }
     .newtab-wallpaper-btn:hover { background: var(--surface); color: var(--text); opacity: 1; }
     .newtab-page {
-      position: relative;
+      position: absolute;
       background-size: cover !important;
       background-position: center !important;
       transition: background 0.5s;
@@ -1080,13 +1080,6 @@
   </div>
   <button id="new-tab-btn" title="New tab">+</button>
   <div id="tabs"></div>
-  <button id="toggle-comments-btn" title="Comments (coming soon)" disabled style="
-    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; color: var(--text-dim); font-size: 14px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; -webkit-app-region: no-drag;
-    opacity: 0.4; cursor: not-allowed;
-  ">💬</button>
   <button id="toggle-notes-btn" title="Toggle notes panel" style="
     width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
     background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
@@ -1101,27 +1094,34 @@
     transition: background 0.15s, color 0.15s, border-color 0.15s;
     flex-shrink: 0; -webkit-app-region: no-drag;
   ">🕘</button>
-  <button id="settings-btn" title="Settings" style="
+  <button id="toggle-comments-btn" title="Comments (coming soon)" disabled style="
     width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
+    background: transparent; color: var(--text-dim); font-size: 14px;
     display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
-    flex-shrink: 0; -webkit-app-region: no-drag; margin-right: 4px;
-  ">⚙️</button>
-  <div id="download-indicator" title="Downloads" style="
-    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s, color 0.15s;
-    flex-shrink: 0; -webkit-app-region: no-drag; position: relative; margin-right: 4px;
-  ">⬇️<span class="dl-badge" id="dl-badge"></span></div>
+    flex-shrink: 0; -webkit-app-region: no-drag;
+    opacity: 0.4; cursor: not-allowed; margin-right: 6px;
+  ">💬</button>
   <button id="darkmode-btn" title="Toggle dark mode" style="
     width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
     background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
     display: flex; align-items: center; justify-content: center;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
-    flex-shrink: 0; -webkit-app-region: no-drag; margin-right: 4px;
+    flex-shrink: 0; -webkit-app-region: no-drag; margin-right: 6px;
   ">🌙</button>
+  <div id="download-indicator" title="Downloads" style="
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0; -webkit-app-region: no-drag; position: relative; margin-right: 6px;
+  ">⬇️<span class="dl-badge" id="dl-badge"></span></div>
+  <button id="settings-btn" title="Settings" style="
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0; -webkit-app-region: no-drag;
+  ">⚙️</button>
   <button id="shortcuts-btn" title="Keyboard shortcuts (Ctrl+?)" style="
     width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
     background: transparent; color: var(--text-dim); cursor: pointer; font-size: 13px;
