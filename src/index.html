@@ -43,7 +43,7 @@
 
     html, body {
       height: 100%;
-      background: var(--bg);
+      background: transparent;
       color: var(--text);
       font-family: 'DM Sans', sans-serif;
       font-size: 14px;
@@ -53,9 +53,20 @@
     }
 
     html {
+      border-radius: 12px;
+    }
+
+    /* This wrapper clips all content to the rounded shape and carries the
+       border + shadow that were previously on <html> */
+    #app-shell {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      border-radius: 12px;
       border: 2px solid var(--accent);
       box-shadow: 0 0 0 1px rgba(91,77,232,0.15), 0 8px 32px rgba(0,0,0,0.18);
-      border-radius: 12px;
+      overflow: hidden;
     }
 
     /* ── TITLEBAR / DRAG REGION ── */
@@ -385,7 +396,9 @@
     /* ── SIDEBAR ── */
     #main-layout {
       display: flex;
-      height: calc(100vh - var(--tab-h) - 16px - 40px);
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
 
     #sidebar {
@@ -1091,6 +1104,7 @@
   </style>
 </head>
 <body>
+<div id="app-shell">
 
 <div id="url-picker"></div>
 <div id="project-picker"></div>
@@ -3009,5 +3023,6 @@ function renderQuoteOnPage(tabId) {
 
 boot();
 </script>
+</div><!-- #app-shell -->
 </body>
 </html>
