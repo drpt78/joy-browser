@@ -1,51 +1,39 @@
-# Maintainer: Your Name <your@email.com>
+# Maintainer: Peter Taraba <peter.taraba.phd@gmail.com>
 pkgname=joy-browser
-pkgver=0.0.1
+pkgver=0.0.11
 pkgrel=1
-pkgdesc="A custom Electron-based web browser for Linux"
-arch=('x86_64')
-url="https://github.com/YOUR_USERNAME/joy-browser"
+pkgdesc="Web Browser"
+arch=('any')
+url="https://github.com/drpt78/joy-browser"
 license=('MIT')
-depends=('electron')
-makedepends=('npm' 'nodejs')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/YOUR_USERNAME/joy-browser/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+depends=('xdg-utils') # add real runtime deps as needed
+source=("https://github.com/drpt78/joy-browser/archive/v${pkgver}.tar.gz")
+sha256sums=('SKIP') # replace with real checksum after creating the release
 
-prepare() {
-  cd "$pkgname-$pkgver"
-  npm install --ignore-scripts
+build() {
+  cd "${srcdir}/${pkgname}-${pkgver}"
+  # If you need a build step, add it here (e.g. npm install && npm run build)
+  return 0
 }
 
 package() {
-  cd "$pkgname-$pkgver"
-
-  # Install app files
-  install -dm755 "$pkgdir/usr/lib/$pkgname"
-  cp -r src index.html icon.png package.json node_modules \
-    "$pkgdir/usr/lib/$pkgname/"
-
-  # Launcher script
-  install -dm755 "$pkgdir/usr/bin"
-  cat > "$pkgdir/usr/bin/$pkgname" << EOF
-#!/bin/bash
-exec electron /usr/lib/$pkgname "\$@"
-EOF
-  chmod +x "$pkgdir/usr/bin/$pkgname"
-
-  # Desktop entry (shows in app menus)
-  install -dm755 "$pkgdir/usr/share/applications"
-  cat > "$pkgdir/usr/share/applications/$pkgname.desktop" << EOF
+  cd "${srcdir}/${pkgname}-${pkgver}"
+  install -dm755 "${pkgdir}/opt/${pkgname}"
+  cp -r . "${pkgdir}/opt/${pkgname}/"
+  install -dm755 "${pkgdir}/usr/share/applications"
+  cat > "${pkgdir}/usr/share/applications/${pkgname}.desktop" <<EOF
 [Desktop Entry]
 Name=Joy Browser
-Comment=A custom Electron-based web browser for Linux
-Exec=$pkgname %U
-Icon=$pkgname
+Exec=/opt/joy-browser/launch.sh
+Icon=/opt/joy-browser/icon.png
 Type=Application
 Categories=Network;WebBrowser;
-MimeType=x-scheme-handler/http;x-scheme-handler/https;
-StartupWMClass=joy-browser
 EOF
-
-  # Icon
-  install -Dm644 icon.png "$pkgdir/usr/share/pixmaps/$pkgname.png"
+  # Add a simple launcher script if you need one:
+  install -dm755 "${pkgdir}/opt/${pkgname}"
+  cat > "${pkgdir}/opt/${pkgname}/launch.sh" <<'SH'
+#!/bin/sh
+exec /usr/bin/xdg-open "$@"
+SH
+  chmod 755 "${pkgdir}/opt/${pkgname}/launch.sh"
 }
