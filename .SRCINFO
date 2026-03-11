@@ -1,0 +1,12 @@
+pkgbase = joy-browser
+	pkgdesc = Web Browser
+	pkgver = 0.0.12
+	pkgrel = 1
+	url = https://github.com/drpt78/joy-browser
+	arch = any
+	license = MIT
+	depends = xdg-utils
+	source = https://github.com/drpt78/joy-browser/archive/v0.0.12.tar.gz
+	sha256sums = d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed
+
+pkgname = joy-browser
