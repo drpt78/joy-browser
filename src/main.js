@@ -94,3 +94,22 @@ ipcMain.handle('load-state', () => {
 ipcMain.on('set-zoom', (event, factor) => {
   if (mainWindow) mainWindow.webContents.setZoomFactor(factor);
 });
+
+// Handle downloads
+app.on('browser-window-created', (_, win) => {
+  win.webContents.session.on('will-download', (event, item) => {
+    const filename = item.getFilename();
+    mainWindow.webContents.send('download-started', { filename, url: item.getURL() });
+    item.on('updated', (event, state) => {
+      if (state === 'progressing' && !item.isPaused()) {
+        const received = item.getReceivedBytes();
+        const total = item.getTotalBytes();
+        const progress = total > 0 ? Math.round((received / total) * 100) : 0;
+        mainWindow.webContents.send('download-progress', { filename, progress });
+      }
+    });
+    item.once('done', (event, state) => {
+      mainWindow.webContents.send('download-done', { filename, state });
+    });
+  });
+});

@@ -1,6 +1,6 @@
 # Maintainer: Your Name <your@email.com>
 pkgname=joy-browser
-pkgver=0.0.2
+pkgver=0.0.3
 pkgrel=1
 pkgdesc="A custom Electron-based web browser for Linux"
 arch=('x86_64')
@@ -9,26 +9,26 @@ license=('MIT')
 depends=('electron')
 makedepends=('npm' 'nodejs')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/drpt78/joy-browser/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('87477762101e1c0ca9005599737ebc2298a8a148d70528ce09a8ef2c798203fb')
+sha256sums=('SKIP')
 
 prepare() {
-  cd "$srcdir/$pkgname-$pkgver"
+  cd "$pkgname-$pkgver"
   npm install --ignore-scripts
 }
 
 package() {
-  cd "$srcdir/$pkgname-$pkgver"
+  cd "$pkgname-$pkgver"
 
   # Install app files
   install -dm755 "$pkgdir/usr/lib/$pkgname"
-  cp -r src/index.html src/icon.png src/main.js src/preload.js package.json node_modules \
+  cp -r src index.html icon.png package.json node_modules \
     "$pkgdir/usr/lib/$pkgname/"
 
   # Launcher script
   install -dm755 "$pkgdir/usr/bin"
   cat > "$pkgdir/usr/bin/$pkgname" << EOF
 #!/bin/bash
-exec electron /usr/lib/$pkgname/main.js "\$@"
+exec electron /usr/lib/$pkgname "\$@"
 EOF
   chmod +x "$pkgdir/usr/bin/$pkgname"
 
@@ -47,5 +47,5 @@ StartupWMClass=joy-browser
 EOF
 
   # Icon
-  install -Dm644 src/icon.png "$pkgdir/usr/share/pixmaps/$pkgname.png"
+  install -Dm644 icon.png "$pkgdir/usr/share/pixmaps/$pkgname.png"
 }

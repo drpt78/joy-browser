@@ -22,23 +22,57 @@
       --bar-h:     46px;
       --radius:    8px;
       --sidebar-w: 50px;
+      --projects-bg: #ede9fb;
+      --projects-border: #c4b8f5;
+      --sidebar-bg: #ebebf0;
+    }
+
+    :root.dark {
+      --bg:        #1a1a1e;
+      --surface:   #26262c;
+      --surface2:  #2e2e36;
+      --border:    #3a3a44;
+      --accent:    #7c6af7;
+      --accent2:   #9d8fff;
+      --text:      #e8e8ed;
+      --text-dim:  #8e8e99;
+      --projects-bg: #22203a;
+      --projects-border: #3d3560;
+      --sidebar-bg: #222228;
     }
 
     html, body {
       height: 100%;
-      background: var(--bg);
+      margin: 0;
+      padding: 0;
+      background: transparent;
       color: var(--text);
       font-family: 'DM Sans', sans-serif;
       font-size: 14px;
       overflow: hidden;
       user-select: none;
-      border-radius: 12px;
     }
 
     html {
+      border-radius: 12px;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+    }
+
+    #app-frame {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      border-radius: 12px;
       border: 2px solid var(--accent);
       box-shadow: 0 0 0 1px rgba(91,77,232,0.15), 0 8px 32px rgba(0,0,0,0.18);
-      border-radius: 12px;
+      overflow: hidden;
     }
 
     /* ── TITLEBAR / DRAG REGION ── */
@@ -55,11 +89,14 @@
 
     /* Extra drag strip at the very top for easy window dragging */
     #drag-strip {
-      height: 16px;
+      height: 18px;
       background: linear-gradient(90deg, #5b4de8 0%, #a78bfa 50%, #5b4de8 100%);
       -webkit-app-region: drag;
       flex-shrink: 0;
-      border-radius: 12px 12px 0 0;
+      /* Match app-frame's top radius exactly so no bg bleeds into corners */
+      border-radius: 10px 10px 0 0;
+      margin: -1px -1px 0 -1px;
+      padding: 0 1px;
     }
 
     /* Window controls */
@@ -256,9 +293,11 @@
       display: none;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 32px;
+      justify-content: flex-start;
+      padding-top: 60px;
+      gap: 20px;
       background: var(--bg);
+      overflow: hidden;
     }
     .newtab-page.active { display: flex; }
 
@@ -368,13 +407,15 @@
     /* ── SIDEBAR ── */
     #main-layout {
       display: flex;
-      height: calc(100vh - var(--tab-h) - 16px - 40px);
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
 
     #sidebar {
       width: var(--sidebar-w);
       flex-shrink: 0;
-      background: #ebebf0;
+      background: var(--sidebar-bg);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
@@ -611,8 +652,8 @@
     /* ── BOTTOM PROJECTS BAR ── */
     #projects-bar {
       height: 40px;
-      background: #ede9fb;
-      border-top: 1px solid #c4b8f5;
+      background: var(--projects-bg);
+      border-top: 1px solid var(--projects-border);
       display: flex;
       align-items: center;
       padding: 0 10px 6px;
@@ -764,6 +805,311 @@
       user-select: text;
       padding: 0 4px;
     }
+
+    /* ── AUDIO INDICATOR ── */
+    .tab-audio {
+      width: 14px; height: 14px;
+      border-radius: 3px;
+      border: none;
+      background: transparent;
+      color: var(--accent2);
+      cursor: pointer;
+      font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.1s, color 0.1s;
+      padding: 0;
+    }
+    .tab-audio:hover { background: rgba(124,106,247,0.15); }
+    .tab-audio.muted { color: var(--text-dim); }
+
+    /* ── DOWNLOAD BAR ── */
+    #download-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 9998;
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-height: 56px;
+      overflow: hidden;
+    }
+    #download-bar.visible { transform: translateY(0); }
+    #download-bar-items {
+      display: flex; gap: 8px; flex: 1; overflow-x: auto;
+      scrollbar-width: none;
+    }
+    #download-bar-items::-webkit-scrollbar { display: none; }
+    .dl-item {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 5px 10px;
+      min-width: 180px; max-width: 260px; flex-shrink: 0;
+    }
+    .dl-item-icon { font-size: 15px; flex-shrink: 0; }
+    .dl-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .dl-item-name { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+    .dl-item-status { font-size: 10px; color: var(--text-dim); }
+    .dl-item-progress {
+      height: 3px; background: var(--border); border-radius: 2px; margin-top: 3px; overflow: hidden;
+    }
+    .dl-item-progress-fill {
+      height: 100%; background: var(--accent); border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+    #download-close-btn {
+      width: 24px; height: 24px; border-radius: 6px; border: none;
+      background: transparent; color: var(--text-dim); cursor: pointer;
+      font-size: 13px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background 0.1s;
+    }
+    #download-close-btn:hover { background: var(--surface2); color: var(--text); }
+    #download-indicator {
+      position: relative; display: flex; align-items: center; justify-content: center;
+    }
+    #download-indicator .dl-badge {
+      position: absolute; top: -4px; right: -4px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      font-size: 8px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      display: none;
+    }
+    #download-indicator .dl-badge.visible { display: flex; }
+
+    /* ── SHORTCUT CHEATSHEET ── */
+    #shortcut-sheet {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(6px);
+      z-index: 99999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    #shortcut-sheet.open { opacity: 1; pointer-events: all; }
+    #shortcut-sheet-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.28);
+      padding: 24px 28px;
+      width: 500px;
+      max-width: 95vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      transform: scale(0.95) translateY(10px);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #shortcut-sheet.open #shortcut-sheet-card { transform: scale(1) translateY(0); }
+    .sc-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; }
+    .sc-section { margin-bottom: 16px; }
+    .sc-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 8px; }
+    .sc-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); }
+    .sc-row:last-child { border-bottom: none; }
+    .sc-action { font-size: 12px; color: var(--text); }
+    .sc-keys { display: flex; gap: 4px; }
+    .sc-key {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 2px 7px;
+      font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      color: var(--text); font-weight: 500;
+      box-shadow: 0 1px 0 var(--border);
+    }
+
+    /* ── IMPROVED NEW TAB ── */
+    .newtab-top-spacer {
+      display: none;
+    }
+    .newtab-icon {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+      border-radius: 16px;
+      margin-bottom: -8px;
+    }
+    .newtab-clock {
+      font-size: 64px;
+      font-weight: 300;
+      letter-spacing: -3px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      line-height: 1;
+    }
+    .newtab-date {
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-top: 4px;
+      font-weight: 400;
+    }
+    .newtab-greeting {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+    .newtab-wallpaper-btn {
+      position: absolute; bottom: 16px; right: 16px;
+      width: 32px; height: 32px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--text-dim); font-size: 15px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+      opacity: 0.7;
+    }
+    .newtab-wallpaper-btn:hover { background: var(--surface); color: var(--text); opacity: 1; }
+    .newtab-page {
+      position: absolute;
+      background-size: cover !important;
+      background-position: center !important;
+      transition: background 0.5s;
+    }
+    .newtab-page.has-wallpaper .newtab-clock,
+    .newtab-page.has-wallpaper .newtab-date,
+    .newtab-page.has-wallpaper .newtab-greeting,
+    .newtab-page.has-wallpaper .newtab-logo {
+      text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+      -webkit-text-fill-color: #fff !important;
+      color: #fff !important;
+    }
+    .newtab-page.has-wallpaper .newtab-search input {
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(255,255,255,0.3);
+      color: #fff;
+      backdrop-filter: blur(8px);
+    }
+    .newtab-page.has-wallpaper .newtab-search input::placeholder { color: rgba(255,255,255,0.7); }
+    .newtab-page.has-wallpaper .newtab-search button { background: rgba(91,77,232,0.85); backdrop-filter: blur(8px); }
+    .newtab-page.has-wallpaper .newtab-quicklinks .quicklink {
+      background: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.25);
+      backdrop-filter: blur(8px);
+      color: #fff;
+    }
+    /* Wallpaper picker overlay */
+    #wallpaper-picker {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(6px);
+      z-index: 99999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    #wallpaper-picker.open { opacity: 1; pointer-events: all; }
+    #wallpaper-picker-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      width: 480px; max-width: 95vw;
+      transform: scale(0.95);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #wallpaper-picker.open #wallpaper-picker-card { transform: scale(1); }
+    .wp-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .wp-swatch {
+      height: 64px; border-radius: 8px; cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+      background-size: cover; background-position: center;
+      position: relative; overflow: hidden;
+    }
+    .wp-swatch:hover { transform: scale(1.04); border-color: var(--accent); }
+    .wp-swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+    .wp-swatch-label {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      font-size: 9px; color: #fff; text-align: center; padding: 3px;
+      background: rgba(0,0,0,0.4);
+    }
+
+    /* ── QUOTE OF THE DAY ── */
+    .newtab-quote {
+      width: min(560px, 88vw);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin-top: auto;
+      padding-bottom: 28px;
+      animation: quoteFadeIn 1.2s ease both;
+      animation-delay: 0.3s;
+      opacity: 0;
+    }
+    @keyframes quoteFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .newtab-quote-inner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 22px;
+      text-align: center;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+      position: relative;
+    }
+    .newtab-quote-mark {
+      font-size: 36px;
+      line-height: 1;
+      color: var(--accent);
+      opacity: 0.25;
+      font-family: Georgia, serif;
+      position: absolute;
+      top: 6px;
+      left: 14px;
+      user-select: none;
+    }
+    .newtab-quote-text {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.65;
+      font-style: italic;
+      padding: 0 10px;
+    }
+    .newtab-quote-author {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: opacity 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .newtab-quote-author:hover { opacity: 0.75; }
+    .newtab-quote-author::before { content: '—'; color: var(--text-dim); font-weight: 400; }
+    .newtab-quote-author-wiki {
+      font-size: 10px;
+      opacity: 0.6;
+    }
+    .newtab-quote-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+    }
+    /* Adapt to wallpaper */
+    .newtab-page.has-wallpaper .newtab-quote-inner {
+      background: rgba(0,0,0,0.35);
+      border-color: rgba(255,255,255,0.15);
+      backdrop-filter: blur(12px);
+    }
+    .newtab-page.has-wallpaper .newtab-quote-text { color: #fff; }
+    .newtab-page.has-wallpaper .newtab-quote-author { color: #c4b8f5; }
+    .newtab-page.has-wallpaper .newtab-quote-label { color: rgba(255,255,255,0.5); }
   </style>
 </head>
 <body>
@@ -771,6 +1117,61 @@
 <div id="url-picker"></div>
 <div id="project-picker"></div>
 
+<!-- SHORTCUT CHEATSHEET -->
+<div id="shortcut-sheet">
+  <div id="shortcut-sheet-card">
+    <div class="sc-title">
+      <span>⌨️ Keyboard Shortcuts</span>
+      <button onclick="closeShortcutSheet()" style="border:none;background:transparent;color:var(--text-dim);cursor:pointer;font-size:16px;padding:0;line-height:1;">✕</button>
+    </div>
+    <div class="sc-section">
+      <div class="sc-section-label">Tabs</div>
+      <div class="sc-row"><span class="sc-action">New tab</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">T</kbd></span></div>
+      <div class="sc-row"><span class="sc-action">Close tab</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">W</kbd></span></div>
+      <div class="sc-row"><span class="sc-action">Next tab</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">Tab</kbd></span></div>
+      <div class="sc-row"><span class="sc-action">Previous tab</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">Shift</kbd><kbd class="sc-key">Tab</kbd></span></div>
+    </div>
+    <div class="sc-section">
+      <div class="sc-section-label">Navigation</div>
+      <div class="sc-row"><span class="sc-action">Focus address bar</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">L</kbd></span></div>
+      <div class="sc-row"><span class="sc-action">Reload page</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">R</kbd></span></div>
+      <div class="sc-row"><span class="sc-action">Go back</span><span class="sc-keys"><kbd class="sc-key">Alt</kbd><kbd class="sc-key">←</kbd></span></div>
+      <div class="sc-row"><span class="sc-action">Go forward</span><span class="sc-keys"><kbd class="sc-key">Alt</kbd><kbd class="sc-key">→</kbd></span></div>
+      <div class="sc-row"><span class="sc-action">Go home</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">Home</kbd></span></div>
+    </div>
+    <div class="sc-section">
+      <div class="sc-section-label">Panels</div>
+      <div class="sc-row"><span class="sc-action">Toggle notes</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">Shift</kbd><kbd class="sc-key">N</kbd></span></div>
+      <div class="sc-row"><span class="sc-action">Toggle history</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">H</kbd></span></div>
+      <div class="sc-row"><span class="sc-action">Toggle dark mode</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">Shift</kbd><kbd class="sc-key">D</kbd></span></div>
+      <div class="sc-row"><span class="sc-action">Show shortcuts</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">?</kbd></span></div>
+    </div>
+    <div class="sc-section">
+      <div class="sc-section-label">Tabs — cycle by number</div>
+      <div class="sc-row"><span class="sc-action">Jump to tab 1–8</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">1–8</kbd></span></div>
+      <div class="sc-row"><span class="sc-action">Jump to last tab</span><span class="sc-keys"><kbd class="sc-key">Ctrl</kbd><kbd class="sc-key">9</kbd></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- DOWNLOAD BAR -->
+<div id="download-bar">
+  <div id="download-bar-items"></div>
+  <button id="download-close-btn" title="Close">✕</button>
+</div>
+
+<!-- WALLPAPER PICKER -->
+<div id="wallpaper-picker">
+  <div id="wallpaper-picker-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:13px;font-weight:700;color:var(--text);">🖼️ New Tab Wallpaper</span>
+      <button onclick="closeWallpaperPicker()" style="border:none;background:transparent;color:var(--text-dim);cursor:pointer;font-size:16px;padding:0;">✕</button>
+    </div>
+    <div class="wp-grid" id="wp-grid"></div>
+  </div>
+</div>
+
+<div id="app-frame">
 <div id="drag-strip"></div>
 
 <!-- TITLEBAR with tabs -->
@@ -781,13 +1182,6 @@
   </div>
   <button id="new-tab-btn" title="New tab">+</button>
   <div id="tabs"></div>
-  <button id="toggle-comments-btn" title="Comments (coming soon)" disabled style="
-    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; color: var(--text-dim); font-size: 14px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; -webkit-app-region: no-drag;
-    opacity: 0.4; cursor: not-allowed;
-  ">💬</button>
   <button id="toggle-notes-btn" title="Toggle notes panel" style="
     width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
     background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
@@ -802,13 +1196,42 @@
     transition: background 0.15s, color 0.15s, border-color 0.15s;
     flex-shrink: 0; -webkit-app-region: no-drag;
   ">🕘</button>
+  <button id="toggle-comments-btn" title="Comments (coming soon)" disabled style="
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; -webkit-app-region: no-drag;
+    opacity: 0.4; cursor: not-allowed; margin-right: 6px;
+  ">💬</button>
+  <button id="darkmode-btn" title="Toggle dark mode" style="
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0; -webkit-app-region: no-drag; margin-right: 6px;
+  ">🌙</button>
+  <div id="download-indicator" title="Downloads" style="
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0; -webkit-app-region: no-drag; position: relative; margin-right: 6px;
+  ">⬇️<span class="dl-badge" id="dl-badge"></span></div>
   <button id="settings-btn" title="Settings" style="
     width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
     background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px;
     display: flex; align-items: center; justify-content: center;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
-    flex-shrink: 0; -webkit-app-region: no-drag; margin-right: 8px;
+    flex-shrink: 0; -webkit-app-region: no-drag;
   ">⚙️</button>
+  <button id="shortcuts-btn" title="Keyboard shortcuts (Ctrl+?)" style="
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0; -webkit-app-region: no-drag; margin-right: 8px;
+    font-family: 'JetBrains Mono', monospace; font-weight: 700;
+  ">?</button>
 </div>
 
 <!-- NAVIGATION BAR -->
@@ -920,6 +1343,7 @@
   <button id="new-project-btn" title="New project">+</button>
   <div id="projects-list"></div>
 </div>
+</div>
 
 <script>
 // ── State ────────────────────────────────────────────────────────────────────
@@ -978,10 +1402,27 @@ function renderTabs() {
     closeBtn.title = 'Close tab';
     closeBtn.addEventListener('click', e => { e.stopPropagation(); closeTab(tab.id); });
 
-    el.appendChild(favicon);
-    el.appendChild(title);
-    el.appendChild(dot);
-    el.appendChild(closeBtn);
+    // Audio indicator
+    if (tab.isAudible || tab.isMuted) {
+      const audioBtn = document.createElement('button');
+      audioBtn.className = 'tab-audio' + (tab.isMuted ? ' muted' : '');
+      audioBtn.innerHTML = tab.isMuted ? '🔇' : '🔊';
+      audioBtn.title = tab.isMuted ? 'Unmute tab' : 'Mute tab';
+      audioBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        toggleTabMute(tab.id);
+      });
+      el.appendChild(favicon);
+      el.appendChild(title);
+      el.appendChild(audioBtn);
+      el.appendChild(dot);
+      el.appendChild(closeBtn);
+    } else {
+      el.appendChild(favicon);
+      el.appendChild(title);
+      el.appendChild(dot);
+      el.appendChild(closeBtn);
+    }
     el.addEventListener('click', () => switchTab(tab.id));
     container.appendChild(el);
   });
@@ -1000,14 +1441,19 @@ function createTab(url = HOMEPAGE) {
     const page = document.createElement('div');
     page.className = 'newtab-page';
     page.innerHTML = `
-      <img src="icon.png" alt="Joy" style="width:110px;height:110px;border-radius:50%;object-fit:cover;box-shadow:0 4px 24px rgba(91,77,232,0.25);"/>
-      <div class="newtab-logo">Joy Browser</div>
+      <div class="newtab-top-spacer"></div>
+      <img class="newtab-icon" src="icon.png" alt="Joy"/>
+      <div class="newtab-clock" id="nt-clock-${id}">00:00</div>
+      <div class="newtab-date" id="nt-date-${id}"></div>
+      <div class="newtab-greeting" id="nt-greeting-${id}"></div>
       <div class="newtab-search">
         <input type="text" placeholder="Search the web or enter a URL…" id="nt-search-${id}" autocomplete="off" spellcheck="false"/>
         <button id="nt-go-${id}">→</button>
       </div>
-      <div class="newtab-quicklinks" style="display:none;"></div>
+      <button class="newtab-wallpaper-btn" id="nt-wp-btn-${id}" title="Change wallpaper">🖼️</button>
     `;
+    startClock(id);
+    page.querySelector(`#nt-wp-btn-${id}`).addEventListener('click', () => openWallpaperPicker());
     // New-tab search
     const goFn = () => {
       const val = document.getElementById(`nt-search-${id}`).value;
@@ -1196,15 +1642,19 @@ function navigateTo(url, tabId) {
       const page = document.createElement('div');
       page.className = 'newtab-page';
       page.innerHTML = `
-        <img src="icon.png" alt="Joy" style="width:110px;height:110px;border-radius:50%;object-fit:cover;box-shadow:0 4px 24px rgba(91,77,232,0.25);"/>
-        <div class="newtab-logo">Joy Browser</div>
+        <div class="newtab-top-spacer"></div>
+        <img class="newtab-icon" src="icon.png" alt="Joy"/>
+        <div class="newtab-clock" id="nt-clock-${tmpId}">00:00</div>
+        <div class="newtab-date" id="nt-date-${tmpId}"></div>
+        <div class="newtab-greeting" id="nt-greeting-${tmpId}"></div>
         <div class="newtab-search">
           <input type="text" placeholder="Search the web or enter a URL…" id="nt-search-${tmpId}" autocomplete="off"/>
           <button id="nt-go-${tmpId}">→</button>
         </div>
-        <div class="newtab-quicklinks" style="display:none;">
-        </div>
+        <button class="newtab-wallpaper-btn" id="nt-wp-btn-${tmpId}" title="Change wallpaper">🖼️</button>
       `;
+      startClock(tmpId);
+      page.querySelector(`#nt-wp-btn-${tmpId}`).addEventListener('click', () => openWallpaperPicker());
       const goFn = () => {
         const val = document.getElementById(`nt-search-${tmpId}`).value;
         navigateTo(normalizeUrl(val), tmpId);
@@ -1329,6 +1779,28 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.key === 'w') { e.preventDefault(); closeTab(activeTabId); }
   if (e.ctrlKey && e.key === 'l') { e.preventDefault(); urlBar.focus(); urlBar.select(); }
   if (e.ctrlKey && e.key === 'r') { e.preventDefault(); const tab = getTabById(activeTabId); if (tab && tab.webview) tab.webview.reload(); }
+  if (e.ctrlKey && e.key === 'h') { e.preventDefault(); setActivePanel('history'); }
+  if (e.ctrlKey && e.shiftKey && e.key === 'N') { e.preventDefault(); setActivePanel('notes'); }
+  if (e.ctrlKey && e.shiftKey && e.key === 'D') { e.preventDefault(); setDarkMode(!isDark); persistState(); }
+  if (e.ctrlKey && (e.key === '?' || e.key === '/')) { e.preventDefault(); openShortcutSheet(); }
+  if (e.key === 'Escape') { closeShortcutSheet(); }
+  if (e.altKey && e.key === 'ArrowLeft')  { const tab = getTabById(activeTabId); if (tab && tab.webview && tab.webview.canGoBack())    tab.webview.goBack();    }
+  if (e.altKey && e.key === 'ArrowRight') { const tab = getTabById(activeTabId); if (tab && tab.webview && tab.webview.canGoForward()) tab.webview.goForward(); }
+  if (e.ctrlKey && e.key === 'Home') { navigateTo(HOMEPAGE); }
+  // Ctrl+Tab / Ctrl+Shift+Tab to cycle tabs
+  if (e.ctrlKey && e.key === 'Tab') {
+    e.preventDefault();
+    const idx = tabs.findIndex(t => t.id === activeTabId);
+    const next = e.shiftKey ? (idx - 1 + tabs.length) % tabs.length : (idx + 1) % tabs.length;
+    switchTab(tabs[next].id);
+  }
+  // Ctrl+1-9 to jump to tab
+  if (e.ctrlKey && /^[1-9]$/.test(e.key)) {
+    e.preventDefault();
+    const n = parseInt(e.key);
+    const target = n === 9 ? tabs[tabs.length - 1] : tabs[n - 1];
+    if (target) switchTab(target.id);
+  }
 });
 
 // ── Project Picker ────────────────────────────────────────────────────────────
@@ -1721,6 +2193,8 @@ function getStateToSave() {
     notes,
     history,
     activePanel,
+    darkMode: isDark,
+    wallpaper: activeWallpaper,
     savedTabs: tabs.filter(t => t.url && t.url !== HOMEPAGE).map(t => ({
       url: t.url,
       title: t.title,
@@ -1931,7 +2405,9 @@ function renderNotes() {
 
   pageNotes.forEach((note, idx) => {
     const el = document.createElement('div');
-    el.style.cssText = `background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;position:relative;opacity:${note.done ? '0.6' : '1'};transition:opacity 0.2s, box-shadow 0.15s;`;
+    const noteBg = note.done ? 'rgba(91,77,232,0.15)' : note.urgent ? 'rgba(239,68,68,0.13)' : 'rgba(234,179,8,0.13)';
+    const noteBorder = note.done ? 'var(--accent)' : note.urgent ? 'rgba(239,68,68,0.6)' : 'rgba(234,179,8,0.6)';
+    el.style.cssText = `background:${noteBg};border:1px solid ${noteBorder};border-radius:8px;padding:8px 10px;position:relative;transition:background 0.2s, border-color 0.2s, box-shadow 0.15s;`;
     el.dataset.idx = idx;
 
     // Drag handle + drag behaviour (only for un-struck notes)
@@ -2005,7 +2481,7 @@ function renderNotes() {
     });
 
     const text = document.createElement('div');
-    text.style.cssText = `font-size:12px;color:var(--text);line-height:1.5;word-break:break-word;${note.done ? 'text-decoration:line-through;color:var(--text-dim);' : ''}`;
+    text.style.cssText = `font-size:12px;color:var(--text);line-height:1.5;word-break:break-word;`;
     text.textContent = note.text;
 
     row.appendChild(checkbox);
@@ -2018,6 +2494,42 @@ function renderNotes() {
     const del = document.createElement('button');
     del.textContent = '✕';
     del.style.cssText = 'position:absolute;top:6px;right:6px;width:16px;height:16px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;font-size:10px;border-radius:3px;opacity:0;transition:opacity 0.1s;padding:0;';
+
+    let urgentBtn = null;
+    if (!note.done) {
+      urgentBtn = document.createElement('button');
+      urgentBtn.textContent = note.urgent ? '🔴 Urgent' : '⚑ Mark urgent';
+      urgentBtn.title = note.urgent ? 'Click to mark normal' : 'Click to mark urgent';
+      urgentBtn.style.cssText = `
+        margin-top: 6px; margin-left: 22px;
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 2px 8px; border-radius: 10px; font-size: 11px; cursor: pointer;
+        border: 1px solid ${note.urgent ? 'rgba(239,68,68,0.5)' : 'var(--border)'};
+        background: ${note.urgent ? 'rgba(239,68,68,0.1)' : 'transparent'};
+        color: ${note.urgent ? '#ef4444' : 'var(--text-dim)'};
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+      `;
+      urgentBtn.addEventListener('mouseenter', () => {
+        if (!notes[url][idx].urgent) {
+          urgentBtn.style.background = 'rgba(239,68,68,0.08)';
+          urgentBtn.style.borderColor = 'rgba(239,68,68,0.4)';
+          urgentBtn.style.color = '#ef4444';
+        }
+      });
+      urgentBtn.addEventListener('mouseleave', () => {
+        if (!notes[url][idx].urgent) {
+          urgentBtn.style.background = 'transparent';
+          urgentBtn.style.borderColor = 'var(--border)';
+          urgentBtn.style.color = 'var(--text-dim)';
+        }
+      });
+      urgentBtn.addEventListener('click', () => {
+        notes[url][idx].urgent = !notes[url][idx].urgent;
+        persistState();
+        renderNotes();
+      });
+    }
+
     el.onmouseover = () => { del.style.opacity = '1'; };
     el.onmouseout  = () => { del.style.opacity = '0'; };
     del.addEventListener('click', () => {
@@ -2027,7 +2539,9 @@ function renderNotes() {
       renderNotes();
     });
 
-    el.appendChild(row); el.appendChild(ts); el.appendChild(del);
+    el.appendChild(row); el.appendChild(ts);
+    if (urgentBtn) el.appendChild(urgentBtn);
+    el.appendChild(del);
     body.appendChild(el);
   });
 
@@ -2159,6 +2673,8 @@ async function boot() {
       renderProjects();
     }
     if (saved.visionLevel) { window._visionLevel = saved.visionLevel; applyVision(saved.visionLevel); }
+    if (saved.darkMode) setDarkMode(true);
+    if (saved.wallpaper) activeWallpaper = saved.wallpaper;
     if (saved.notes) notes = saved.notes;
     if (saved.history) history = saved.history;
 
@@ -2202,7 +2718,321 @@ async function boot() {
   console.log('[boot] no saved state, localStorage panel =', savedPanel);
   if (savedPanel) setActivePanel(savedPanel);
 }
+// ── DARK MODE ─────────────────────────────────────────────────────────────────
+let isDark = false;
+
+function setDarkMode(on) {
+  isDark = on;
+  document.documentElement.classList.toggle('dark', on);
+  const btn = document.getElementById('darkmode-btn');
+  if (btn) btn.textContent = on ? '☀️' : '🌙';
+}
+
+document.getElementById('darkmode-btn').addEventListener('click', () => {
+  setDarkMode(!isDark);
+  persistState();
+});
+
+// ── CLOCK / GREETING ──────────────────────────────────────────────────────────
+const clockIntervals = {};
+
+function startClock(tabId) {
+  if (clockIntervals[tabId]) clearInterval(clockIntervals[tabId]);
+  updateClock(tabId);
+  clockIntervals[tabId] = setInterval(() => updateClock(tabId), 1000);
+  // Render quote after a brief tick so the page DOM is ready
+  setTimeout(() => renderQuoteOnPage(tabId), 0);
+}
+
+function updateClock(tabId) {
+  const clockEl   = document.getElementById(`nt-clock-${tabId}`);
+  const dateEl    = document.getElementById(`nt-date-${tabId}`);
+  const greetEl   = document.getElementById(`nt-greeting-${tabId}`);
+  if (!clockEl) { clearInterval(clockIntervals[tabId]); delete clockIntervals[tabId]; return; }
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2, '0');
+  const m = now.getMinutes().toString().padStart(2, '0');
+  clockEl.textContent = `${h}:${m}`;
+  if (dateEl) {
+    dateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  }
+  if (greetEl) {
+    const hr = now.getHours();
+    const greeting = hr < 5 ? 'Burning the midnight oil? 🌙' :
+                     hr < 12 ? 'Good morning ☀️' :
+                     hr < 17 ? 'Good afternoon 👋' :
+                     hr < 21 ? 'Good evening 🌆' : 'Good night 🌙';
+    greetEl.textContent = greeting;
+  }
+  // Apply current wallpaper
+  applyWallpaperToPage(tabId);
+}
+
+// ── WALLPAPER ─────────────────────────────────────────────────────────────────
+const WALLPAPERS = [
+  { id: 'none',    label: 'None',        style: 'background: var(--bg)' },
+  { id: 'aurora',  label: 'Aurora',      gradient: 'linear-gradient(135deg, #0f0c29, #302b63, #24243e)' },
+  { id: 'dusk',    label: 'Dusk',        gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 50%, #ff9a9e 100%)' },
+  { id: 'ocean',   label: 'Ocean',       gradient: 'linear-gradient(135deg, #0575e6, #021b79)' },
+  { id: 'forest',  label: 'Forest',      gradient: 'linear-gradient(135deg, #134e5e, #71b280)' },
+  { id: 'midnight',label: 'Midnight',    gradient: 'linear-gradient(135deg, #141e30, #243b55)' },
+  { id: 'candy',   label: 'Candy',       gradient: 'linear-gradient(135deg, #f093fb, #f5576c)' },
+  { id: 'sand',    label: 'Sand',        gradient: 'linear-gradient(135deg, #c9a96e, #f7e9d7)' },
+];
+
+let activeWallpaper = 'none';
+
+function applyWallpaperToPage(tabId) {
+  const page = document.getElementById(`nt-clock-${tabId}`)?.closest('.newtab-page');
+  if (!page) return;
+  const wp = WALLPAPERS.find(w => w.id === activeWallpaper);
+  if (!wp || wp.id === 'none') {
+    page.style.background = '';
+    page.classList.remove('has-wallpaper');
+  } else {
+    page.style.background = wp.gradient;
+    page.classList.add('has-wallpaper');
+  }
+}
+
+function openWallpaperPicker() {
+  const picker = document.getElementById('wallpaper-picker');
+  const grid   = document.getElementById('wp-grid');
+  grid.innerHTML = '';
+  WALLPAPERS.forEach(wp => {
+    const sw = document.createElement('div');
+    sw.className = 'wp-swatch' + (wp.id === activeWallpaper ? ' active' : '');
+    if (wp.gradient) sw.style.background = wp.gradient;
+    else sw.style.background = 'var(--surface2)';
+    const label = document.createElement('div');
+    label.className = 'wp-swatch-label';
+    label.textContent = wp.label;
+    sw.appendChild(label);
+    sw.addEventListener('click', () => {
+      activeWallpaper = wp.id;
+      persistState();
+      closeWallpaperPicker();
+      // Refresh all newtab pages
+      tabs.forEach(t => { if (t.newtab) applyWallpaperToPage(t.id); });
+    });
+    grid.appendChild(sw);
+  });
+  picker.classList.add('open');
+  setTimeout(() => {
+    document.addEventListener('mousedown', function h(e) {
+      if (!document.getElementById('wallpaper-picker-card').contains(e.target)) {
+        closeWallpaperPicker();
+        document.removeEventListener('mousedown', h);
+      }
+    });
+  }, 0);
+}
+
+function closeWallpaperPicker() {
+  document.getElementById('wallpaper-picker').classList.remove('open');
+}
+
+// ── TAB AUDIO / MUTE ─────────────────────────────────────────────────────────
+function toggleTabMute(tabId) {
+  const tab = getTabById(tabId);
+  if (!tab || !tab.webview) return;
+  tab.isMuted = !tab.isMuted;
+  try { tab.webview.setAudioMuted(tab.isMuted); } catch(e) {}
+  renderTabs();
+}
+
+// Attach audio detection to webview events
+const _origAttach = attachWebviewEvents;
+function attachWebviewEventsExtended(wv, tabId) {
+  _origAttach(wv, tabId);
+  wv.addEventListener('media-started-playing', () => {
+    const tab = getTabById(tabId);
+    if (tab) { tab.isAudible = true; renderTabs(); }
+  });
+  wv.addEventListener('media-paused', () => {
+    const tab = getTabById(tabId);
+    if (tab) { tab.isAudible = false; renderTabs(); }
+  });
+}
+
+// ── DOWNLOADS ─────────────────────────────────────────────────────────────────
+let downloads = [];
+let downloadCounter = 0;
+
+function addDownload(filename, url) {
+  const id = ++downloadCounter;
+  downloads.unshift({ id, filename, url, progress: 0, done: false, failed: false });
+  updateDownloadBadge();
+  renderDownloadBar();
+  // Simulate progress (real downloads come via Electron IPC)
+  let prog = 0;
+  const interval = setInterval(() => {
+    prog += Math.random() * 18 + 4;
+    if (prog >= 100) { prog = 100; clearInterval(interval); markDownloadDone(id); }
+    const dl = downloads.find(d => d.id === id);
+    if (dl) { dl.progress = Math.round(prog); renderDownloadBar(); }
+  }, 200);
+  return id;
+}
+
+function markDownloadDone(id) {
+  const dl = downloads.find(d => d.id === id);
+  if (dl) { dl.done = true; dl.progress = 100; renderDownloadBar(); updateDownloadBadge(); }
+}
+
+function updateDownloadBadge() {
+  const badge = document.getElementById('dl-badge');
+  const active = downloads.filter(d => !d.done && !d.failed).length;
+  if (badge) {
+    badge.textContent = active > 0 ? active : downloads.length;
+    badge.classList.toggle('visible', downloads.length > 0);
+  }
+}
+
+function renderDownloadBar() {
+  const bar   = document.getElementById('download-bar');
+  const items = document.getElementById('download-bar-items');
+  if (!bar || !items) return;
+  if (downloads.length === 0) { bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  items.innerHTML = '';
+  downloads.slice(0, 6).forEach(dl => {
+    const ext = dl.filename.split('.').pop().toUpperCase() || 'FILE';
+    const icon = {'PDF':'📄','ZIP':'🗜️','PNG':'🖼️','JPG':'🖼️','MP4':'🎬','MP3':'🎵','EXE':'⚙️'}[ext] || '📥';
+    const el = document.createElement('div');
+    el.className = 'dl-item';
+    el.innerHTML = `
+      <div class="dl-item-icon">${icon}</div>
+      <div class="dl-item-info">
+        <div class="dl-item-name">${dl.filename}</div>
+        <div class="dl-item-status">${dl.done ? '✓ Done' : dl.failed ? '✗ Failed' : dl.progress + '%'}</div>
+        ${!dl.done ? `<div class="dl-item-progress"><div class="dl-item-progress-fill" style="width:${dl.progress}%"></div></div>` : ''}
+      </div>
+    `;
+    items.appendChild(el);
+  });
+}
+
+document.getElementById('download-close-btn').addEventListener('click', () => {
+  downloads = [];
+  document.getElementById('download-bar').classList.remove('visible');
+  updateDownloadBadge();
+});
+
+document.getElementById('download-indicator').addEventListener('click', () => {
+  const bar = document.getElementById('download-bar');
+  if (downloads.length === 0) return;
+  bar.classList.toggle('visible');
+});
+
+// ── KEYBOARD SHORTCUT SHEET ───────────────────────────────────────────────────
+function openShortcutSheet() {
+  document.getElementById('shortcut-sheet').classList.add('open');
+}
+function closeShortcutSheet() {
+  document.getElementById('shortcut-sheet').classList.remove('open');
+}
+document.getElementById('shortcut-sheet').addEventListener('click', e => {
+  if (e.target === document.getElementById('shortcut-sheet')) closeShortcutSheet();
+});
+document.getElementById('shortcuts-btn').addEventListener('click', openShortcutSheet);
+
+// Wire up real Electron download events
+if (window.electronAPI) {
+  window.electronAPI.onDownloadStarted(({ filename }) => addDownload(filename));
+  window.electronAPI.onDownloadProgress(({ filename, progress }) => {
+    const dl = downloads.find(d => d.filename === filename && !d.done);
+    if (dl) { dl.progress = progress; renderDownloadBar(); }
+  });
+  window.electronAPI.onDownloadDone(({ filename, state }) => {
+    const dl = downloads.find(d => d.filename === filename);
+    if (dl) { dl.done = true; dl.failed = state !== 'completed'; dl.progress = 100; renderDownloadBar(); updateDownloadBadge(); }
+  });
+}
+
+// ── QUOTE OF THE DAY ─────────────────────────────────────────────────────────
+const SCIENCE_QUOTES = [
+  { text: "The important thing is not to stop questioning. Curiosity has its own reason for existing.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "Science is not only a disciple of reason but also one of romance and passion.", author: "Stephen Hawking", wiki: "Stephen_Hawking" },
+  { text: "The good thing about science is that it's true whether or not you believe in it.", author: "Neil deGrasse Tyson", wiki: "Neil_deGrasse_Tyson" },
+  { text: "In science, there are no shortcuts to truth.", author: "Karl Popper", wiki: "Karl_Popper" },
+  { text: "Science knows no country, because knowledge belongs to humanity, and is the torch which illuminates the world.", author: "Louis Pasteur", wiki: "Louis_Pasteur" },
+  { text: "Nothing in life is to be feared, it is only to be understood. Now is the time to understand more, so that we may fear less.", author: "Marie Curie", wiki: "Marie_Curie" },
+  { text: "The universe is under no obligation to make sense to you.", author: "Neil deGrasse Tyson", wiki: "Neil_deGrasse_Tyson" },
+  { text: "Research is what I'm doing when I don't know what I'm doing.", author: "Wernher von Braun", wiki: "Wernher_von_Braun" },
+  { text: "The most beautiful thing we can experience is the mysterious. It is the source of all true art and science.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "If you know you are on the right track, if you have this inner knowledge, then nobody can turn you off — no matter what they say.", author: "Barbara McClintock", wiki: "Barbara_McClintock" },
+  { text: "We are just an advanced breed of monkeys on a minor planet of a very average star. But we can understand the Universe. That makes us something very special.", author: "Stephen Hawking", wiki: "Stephen_Hawking" },
+  { text: "The greatest enemy of knowledge is not ignorance, it is the illusion of knowledge.", author: "Daniel J. Boorstin", wiki: "Daniel_J._Boorstin" },
+  { text: "Equipped with his five senses, man explores the universe around him and calls the adventure Science.", author: "Edwin Hubble", wiki: "Edwin_Hubble" },
+  { text: "In questions of science, the authority of a thousand is not worth the humble reasoning of a single individual.", author: "Galileo Galilei", wiki: "Galileo_Galilei" },
+  { text: "The day science begins to study non-physical phenomena, it will make more progress in one decade than in all the previous centuries of its existence.", author: "Nikola Tesla", wiki: "Nikola_Tesla" },
+  { text: "I have no special talents. I am only passionately curious.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "An experiment is a question which science poses to Nature, and a measurement is the recording of Nature's answer.", author: "Max Planck", wiki: "Max_Planck" },
+  { text: "The more I learn, the more I realize how much I don't know.", author: "Richard Feynman", wiki: "Richard_Feynman" },
+  { text: "Physics is like sex: sure, it may give some practical results, but that's not why we do it.", author: "Richard Feynman", wiki: "Richard_Feynman" },
+  { text: "To raise new questions, new possibilities, to regard old problems from a new angle, requires creative imagination and marks real advance in science.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "Science is a way of thinking much more than it is a body of knowledge.", author: "Carl Sagan", wiki: "Carl_Sagan" },
+  { text: "Somewhere, something incredible is waiting to be known.", author: "Carl Sagan", wiki: "Carl_Sagan" },
+  { text: "The cosmos is within us. We are made of star-stuff. We are a way for the universe to know itself.", author: "Carl Sagan", wiki: "Carl_Sagan" },
+  { text: "What we know is a drop, what we don't know is an ocean.", author: "Isaac Newton", wiki: "Isaac_Newton" },
+  { text: "Nature is not only stranger than we suppose, but stranger than we can suppose.", author: "J.B.S. Haldane", wiki: "J._B._S._Haldane" },
+  { text: "Biology is the study of complicated things that give the appearance of having been designed for a purpose.", author: "Richard Dawkins", wiki: "Richard_Dawkins" },
+  { text: "There is no such thing as a failed experiment, only experiments with unexpected outcomes.", author: "Richard Buckminster Fuller", wiki: "Buckminster_Fuller" },
+  { text: "Science is the belief in the ignorance of experts.", author: "Richard Feynman", wiki: "Richard_Feynman" },
+  { text: "The most exciting phrase to hear in science, the one that heralds new discoveries, is not 'Eureka!' but 'That\\'s funny...'", author: "Isaac Asimov", wiki: "Isaac_Asimov" },
+  { text: "One, remember to look up at the stars and not down at your feet. Two, never give up work.", author: "Stephen Hawking", wiki: "Stephen_Hawking" },
+  { text: "We cannot solve our problems with the same thinking we used when we created them.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "If I have seen further, it is by standing on the shoulders of giants.", author: "Isaac Newton", wiki: "Isaac_Newton" },
+  { text: "The whole of science is nothing more than a refinement of everyday thinking.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "An investment in knowledge pays the best interest.", author: "Benjamin Franklin", wiki: "Benjamin_Franklin" },
+  { text: "The scientist is not a person who gives the right answers, he is one who asks the right questions.", author: "Claude Lévi-Strauss", wiki: "Claude_Lévi-Strauss" },
+  { text: "Look deep into nature, and then you will understand everything better.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "Two things are infinite: the universe and human stupidity; and I'm not sure about the universe.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+];
+
+function getDailyQuote() {
+  const dayIndex = Math.floor(Date.now() / 86400000); // changes each UTC day
+  return SCIENCE_QUOTES[dayIndex % SCIENCE_QUOTES.length];
+}
+
+function renderQuoteOnPage(tabId) {
+  const clockEl = document.getElementById(`nt-clock-${tabId}`);
+  if (!clockEl) return;
+  const page = clockEl.closest('.newtab-page');
+  if (!page) return;
+
+  // Only add once per page
+  if (page.querySelector('.newtab-quote')) return;
+
+  const q = getDailyQuote();
+  const wikiUrl = `https://en.wikipedia.org/wiki/${q.wiki}`;
+
+  const block = document.createElement('div');
+  block.className = 'newtab-quote';
+  block.innerHTML = `
+    <div class="newtab-quote-label">✦ Quote of the Day</div>
+    <div class="newtab-quote-inner">
+      <span class="newtab-quote-mark">"</span>
+      <div class="newtab-quote-text">${q.text}</div>
+    </div>
+    <a class="newtab-quote-author" href="${wikiUrl}" title="Open Wikipedia article for ${q.author}">
+      ${q.author}
+      <span class="newtab-quote-author-wiki">↗ Wikipedia</span>
+    </a>
+  `;
+
+  // Open Wikipedia in a new browser tab (Electron-safe — no target="_blank")
+  block.querySelector('.newtab-quote-author').addEventListener('click', e => {
+    e.preventDefault();
+    createTab(wikiUrl);
+  });
+
+  page.appendChild(block);
+}
+
 boot();
 </script>
+
 </body>
 </html>
