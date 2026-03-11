@@ -1008,6 +1008,86 @@
       font-size: 9px; color: #fff; text-align: center; padding: 3px;
       background: rgba(0,0,0,0.4);
     }
+
+    /* ── QUOTE OF THE DAY ── */
+    .newtab-quote {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(580px, 90vw);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      animation: quoteFadeIn 1.2s ease both;
+      animation-delay: 0.3s;
+      opacity: 0;
+    }
+    @keyframes quoteFadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    .newtab-quote-inner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 22px;
+      text-align: center;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+      position: relative;
+    }
+    .newtab-quote-mark {
+      font-size: 36px;
+      line-height: 1;
+      color: var(--accent);
+      opacity: 0.25;
+      font-family: Georgia, serif;
+      position: absolute;
+      top: 6px;
+      left: 14px;
+      user-select: none;
+    }
+    .newtab-quote-text {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.65;
+      font-style: italic;
+      padding: 0 10px;
+    }
+    .newtab-quote-author {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: opacity 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .newtab-quote-author:hover { opacity: 0.75; }
+    .newtab-quote-author::before { content: '—'; color: var(--text-dim); font-weight: 400; }
+    .newtab-quote-author-wiki {
+      font-size: 10px;
+      opacity: 0.6;
+    }
+    .newtab-quote-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+    }
+    /* Adapt to wallpaper */
+    .newtab-page.has-wallpaper .newtab-quote-inner {
+      background: rgba(0,0,0,0.35);
+      border-color: rgba(255,255,255,0.15);
+      backdrop-filter: blur(12px);
+    }
+    .newtab-page.has-wallpaper .newtab-quote-text { color: #fff; }
+    .newtab-page.has-wallpaper .newtab-quote-author { color: #c4b8f5; }
+    .newtab-page.has-wallpaper .newtab-quote-label { color: rgba(255,255,255,0.5); }
   </style>
 </head>
 <body>
@@ -2636,6 +2716,8 @@ function startClock(tabId) {
   if (clockIntervals[tabId]) clearInterval(clockIntervals[tabId]);
   updateClock(tabId);
   clockIntervals[tabId] = setInterval(() => updateClock(tabId), 1000);
+  // Render quote after a brief tick so the page DOM is ready
+  setTimeout(() => renderQuoteOnPage(tabId), 0);
 }
 
 function updateClock(tabId) {
@@ -2842,6 +2924,87 @@ if (window.electronAPI) {
     const dl = downloads.find(d => d.filename === filename);
     if (dl) { dl.done = true; dl.failed = state !== 'completed'; dl.progress = 100; renderDownloadBar(); updateDownloadBadge(); }
   });
+}
+
+// ── QUOTE OF THE DAY ─────────────────────────────────────────────────────────
+const SCIENCE_QUOTES = [
+  { text: "The important thing is not to stop questioning. Curiosity has its own reason for existing.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "Science is not only a disciple of reason but also one of romance and passion.", author: "Stephen Hawking", wiki: "Stephen_Hawking" },
+  { text: "The good thing about science is that it's true whether or not you believe in it.", author: "Neil deGrasse Tyson", wiki: "Neil_deGrasse_Tyson" },
+  { text: "In science, there are no shortcuts to truth.", author: "Karl Popper", wiki: "Karl_Popper" },
+  { text: "Science knows no country, because knowledge belongs to humanity, and is the torch which illuminates the world.", author: "Louis Pasteur", wiki: "Louis_Pasteur" },
+  { text: "Nothing in life is to be feared, it is only to be understood. Now is the time to understand more, so that we may fear less.", author: "Marie Curie", wiki: "Marie_Curie" },
+  { text: "The universe is under no obligation to make sense to you.", author: "Neil deGrasse Tyson", wiki: "Neil_deGrasse_Tyson" },
+  { text: "Research is what I'm doing when I don't know what I'm doing.", author: "Wernher von Braun", wiki: "Wernher_von_Braun" },
+  { text: "The most beautiful thing we can experience is the mysterious. It is the source of all true art and science.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "If you know you are on the right track, if you have this inner knowledge, then nobody can turn you off — no matter what they say.", author: "Barbara McClintock", wiki: "Barbara_McClintock" },
+  { text: "We are just an advanced breed of monkeys on a minor planet of a very average star. But we can understand the Universe. That makes us something very special.", author: "Stephen Hawking", wiki: "Stephen_Hawking" },
+  { text: "The greatest enemy of knowledge is not ignorance, it is the illusion of knowledge.", author: "Daniel J. Boorstin", wiki: "Daniel_J._Boorstin" },
+  { text: "Equipped with his five senses, man explores the universe around him and calls the adventure Science.", author: "Edwin Hubble", wiki: "Edwin_Hubble" },
+  { text: "In questions of science, the authority of a thousand is not worth the humble reasoning of a single individual.", author: "Galileo Galilei", wiki: "Galileo_Galilei" },
+  { text: "The day science begins to study non-physical phenomena, it will make more progress in one decade than in all the previous centuries of its existence.", author: "Nikola Tesla", wiki: "Nikola_Tesla" },
+  { text: "I have no special talents. I am only passionately curious.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "An experiment is a question which science poses to Nature, and a measurement is the recording of Nature's answer.", author: "Max Planck", wiki: "Max_Planck" },
+  { text: "The more I learn, the more I realize how much I don't know.", author: "Richard Feynman", wiki: "Richard_Feynman" },
+  { text: "Physics is like sex: sure, it may give some practical results, but that's not why we do it.", author: "Richard Feynman", wiki: "Richard_Feynman" },
+  { text: "To raise new questions, new possibilities, to regard old problems from a new angle, requires creative imagination and marks real advance in science.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "Science is a way of thinking much more than it is a body of knowledge.", author: "Carl Sagan", wiki: "Carl_Sagan" },
+  { text: "Somewhere, something incredible is waiting to be known.", author: "Carl Sagan", wiki: "Carl_Sagan" },
+  { text: "The cosmos is within us. We are made of star-stuff. We are a way for the universe to know itself.", author: "Carl Sagan", wiki: "Carl_Sagan" },
+  { text: "What we know is a drop, what we don't know is an ocean.", author: "Isaac Newton", wiki: "Isaac_Newton" },
+  { text: "Nature is not only stranger than we suppose, but stranger than we can suppose.", author: "J.B.S. Haldane", wiki: "J._B._S._Haldane" },
+  { text: "Biology is the study of complicated things that give the appearance of having been designed for a purpose.", author: "Richard Dawkins", wiki: "Richard_Dawkins" },
+  { text: "There is no such thing as a failed experiment, only experiments with unexpected outcomes.", author: "Richard Buckminster Fuller", wiki: "Buckminster_Fuller" },
+  { text: "Science is the belief in the ignorance of experts.", author: "Richard Feynman", wiki: "Richard_Feynman" },
+  { text: "The most exciting phrase to hear in science, the one that heralds new discoveries, is not 'Eureka!' but 'That\\'s funny...'", author: "Isaac Asimov", wiki: "Isaac_Asimov" },
+  { text: "One, remember to look up at the stars and not down at your feet. Two, never give up work.", author: "Stephen Hawking", wiki: "Stephen_Hawking" },
+  { text: "We cannot solve our problems with the same thinking we used when we created them.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "If I have seen further, it is by standing on the shoulders of giants.", author: "Isaac Newton", wiki: "Isaac_Newton" },
+  { text: "The whole of science is nothing more than a refinement of everyday thinking.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "An investment in knowledge pays the best interest.", author: "Benjamin Franklin", wiki: "Benjamin_Franklin" },
+  { text: "The scientist is not a person who gives the right answers, he is one who asks the right questions.", author: "Claude Lévi-Strauss", wiki: "Claude_Lévi-Strauss" },
+  { text: "Look deep into nature, and then you will understand everything better.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+  { text: "Two things are infinite: the universe and human stupidity; and I'm not sure about the universe.", author: "Albert Einstein", wiki: "Albert_Einstein" },
+];
+
+function getDailyQuote() {
+  const dayIndex = Math.floor(Date.now() / 86400000); // changes each UTC day
+  return SCIENCE_QUOTES[dayIndex % SCIENCE_QUOTES.length];
+}
+
+function renderQuoteOnPage(tabId) {
+  const clockEl = document.getElementById(`nt-clock-${tabId}`);
+  if (!clockEl) return;
+  const page = clockEl.closest('.newtab-page');
+  if (!page) return;
+
+  // Only add once per page
+  if (page.querySelector('.newtab-quote')) return;
+
+  const q = getDailyQuote();
+  const wikiUrl = `https://en.wikipedia.org/wiki/${q.wiki}`;
+
+  const block = document.createElement('div');
+  block.className = 'newtab-quote';
+  block.innerHTML = `
+    <div class="newtab-quote-label">✦ Quote of the Day</div>
+    <div class="newtab-quote-inner">
+      <span class="newtab-quote-mark">"</span>
+      <div class="newtab-quote-text">${q.text}</div>
+    </div>
+    <a class="newtab-quote-author" href="${wikiUrl}" title="Open Wikipedia article for ${q.author}">
+      ${q.author}
+      <span class="newtab-quote-author-wiki">↗ Wikipedia</span>
+    </a>
+  `;
+
+  // Open Wikipedia in a new browser tab (Electron-safe — no target="_blank")
+  block.querySelector('.newtab-quote-author').addEventListener('click', e => {
+    e.preventDefault();
+    createTab(wikiUrl);
+  });
+
+  page.appendChild(block);
 }
 
 boot();
