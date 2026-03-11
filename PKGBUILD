@@ -7,8 +7,8 @@ arch=('any')
 url="https://github.com/drpt78/joy-browser"
 license=('MIT')
 depends=('xdg-utils') # add real runtime deps as needed
-source=("https://github.com/drpt78/joy-browser/archive/v${pkgver}.tar.gz")
-sha256sums=('d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed') # replace with real checksum after creating the release
+source=("https://github.com/drpt78/joy-browser/archive/${pkgver}.tar.gz")
+sha256sums=('d6151052a1ee64b72be056fb74b677fd75d3002509acb6812ec888dbbde40edc') # replace with real checksum after creating the release
 
 build() {
   cd "${srcdir}/${pkgname}-${pkgver}"
