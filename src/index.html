@@ -1136,7 +1136,7 @@
       background: linear-gradient(135deg, rgba(91,77,232,0.25) 0%, rgba(124,106,247,0.2) 100%);
       box-shadow: 0 0 0 1px var(--accent) inset;
     }
-    #start-tab-icon { font-size: 13px; flex-shrink: 0; }
+    #start-tab-icon { width: 16px; height: 16px; border-radius: 4px; object-fit: contain; flex-shrink: 0; }
     #start-tab-label {
       font-size: 12px;
       font-weight: 600;
@@ -1359,6 +1359,29 @@
     .planner-hour-cell:hover { background: rgba(91,77,232,0.04); }
     .planner-hour-cell.has-event { background: rgba(91,77,232,0.04); }
 
+    /* Today column subtle tint */
+    .planner-day-col.today-col .planner-day-body { background: rgba(91,77,232,0.025); }
+
+    /* Current time indicator line */
+    #time-indicator {
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background: #ef4444;
+      border-radius: 2px;
+      z-index: 20;
+      pointer-events: none;
+    }
+    #time-indicator::before {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: -4px;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+
     /* Events inside cells */
     .planner-event {
       margin: 2px 3px;
@@ -1493,7 +1516,7 @@
     <button class="wc-btn" id="btn-maximize" title="Maximize">⤢</button>
   </div>
   <div id="start-tab" title="Start — Weekly Planner">
-    <span id="start-tab-icon">🗓️</span>
+    <img id="start-tab-icon" src="icon.png" alt="Start" style="width:16px;height:16px;border-radius:4px;object-fit:contain;flex-shrink:0;"/>
     <span id="start-tab-label">Start</span>
   </div>
   <button id="new-tab-btn" title="New tab">+</button>
@@ -3630,8 +3653,33 @@ function renderPlanner() {
     syncingScroll = false;
   });
 
-  // Auto-scroll to current hour (or 8am) when viewing current week
+  // ── Current time indicator (only for current week) ──
   if (plannerWeekOffset === 0) {
+    const todayColIndex = new Date().getDay(); // 0=Sun
+    const todayBody = dayBodies[todayColIndex];
+    // Mark column with today class for tint
+    todayBody && todayBody.closest('.planner-day-col') && todayBody.closest('.planner-day-col').classList.add('today-col');
+
+    function positionTimeIndicator() {
+      const existing = document.getElementById('time-indicator');
+      if (existing) existing.remove();
+      if (!todayBody) return;
+      const now = new Date();
+      const minuteOfDay = now.getHours() * 60 + now.getMinutes();
+      const pxPerMinute = 48 / 60;
+      const topPx = minuteOfDay * pxPerMinute;
+      const indicator = document.createElement('div');
+      indicator.id = 'time-indicator';
+      indicator.style.top = topPx + 'px';
+      todayBody.appendChild(indicator);
+    }
+
+    positionTimeIndicator();
+    // Clear old interval if any
+    if (window._timeIndicatorInterval) clearInterval(window._timeIndicatorInterval);
+    window._timeIndicatorInterval = setInterval(positionTimeIndicator, 60000);
+
+    // Auto-scroll to current hour
     const currentHour = new Date().getHours();
     const scrollTo = Math.max(0, currentHour - 1) * 48;
     setTimeout(() => {
