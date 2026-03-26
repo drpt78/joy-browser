@@ -271,9 +271,6 @@
     .secure   { background: rgba(52,211,153,0.15); color: #059669; }
     .insecure { background: rgba(251,113,133,0.15); color: #e11d48; }
 
-    /* ── NAVBAR HIDDEN ── */
-    #navbar { display: none; }
-
     /* ── WEBVIEW CONTAINER ── */
 
     webview {
@@ -656,10 +653,9 @@
       border-top: 1px solid var(--projects-border);
       display: flex;
       align-items: center;
-      padding: 0 10px 6px;
+      padding: 0 10px;
       gap: 6px;
       flex-shrink: 0;
-      margin-bottom: 6px;
     }
 
     #projects-label {
@@ -1866,11 +1862,6 @@ function attachWebviewEvents(wv, tabId) {
     if (tabId === activeTabId) updateNavButtons();
   });
 
-  wv.addEventListener('dom-ready', () => {
-    tab.webviewReady = true;
-    if (tabId === activeTabId) updateNavButtons();
-  });
-
   wv.addEventListener('did-start-loading', () => {
     if (tabId !== activeTabId) return;
     setLoading(true);
@@ -1941,6 +1932,15 @@ function attachWebviewEvents(wv, tabId) {
 
   wv.addEventListener('new-window', e => {
     createTab(e.url);
+  });
+
+  wv.addEventListener('media-started-playing', () => {
+    const tab = getTabById(tabId);
+    if (tab) { tab.isAudible = true; renderTabs(); }
+  });
+  wv.addEventListener('media-paused', () => {
+    const tab = getTabById(tabId);
+    if (tab) { tab.isAudible = false; renderTabs(); }
   });
 }
 
@@ -2629,8 +2629,9 @@ function setActivePanel(panel) {
   historyBtn.style.borderColor  = activePanel === 'history'  ? activeBorder  : inactiveBorder;
   historyBtn.style.color        = activePanel === 'history'  ? activeColor   : inactiveColor;
 
-  if (activePanel) localStorage.setItem('activePanel', activePanel);
-  else localStorage.removeItem('activePanel');
+  if (activePanel) {
+    // Panel is persisted via persistState() called below
+  }
 
   persistState();
 }
@@ -2647,7 +2648,7 @@ document.getElementById('history-clear-btn').addEventListener('click', () => {
 });
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-let visionSetting = localStorage && false; // stored in state
+let visionSetting = 'good'; // stored in persisted state via window._visionLevel
 const VISION_SCALES = { good: 1, notbest: 1.1, bad: 1.2 };
 
 function applyVision(level) {
@@ -3080,7 +3081,7 @@ async function boot() {
       setTimeout(() => showStartPage(), 0);
     }
 
-    const savedPanel = saved.activePanel || localStorage.getItem('activePanel');
+    const savedPanel = saved.activePanel;
     console.log('[boot] savedPanel =', savedPanel, '| saved.activePanel =', saved.activePanel);
     if (savedPanel) {
       try {
@@ -3097,9 +3098,6 @@ async function boot() {
     return;
   }
   createTab(HOMEPAGE);
-  const savedPanel = localStorage.getItem('activePanel');
-  console.log('[boot] no saved state, localStorage panel =', savedPanel);
-  if (savedPanel) setActivePanel(savedPanel);
   setTimeout(() => showStartPage(), 0);
 }
 // ── DARK MODE ─────────────────────────────────────────────────────────────────
@@ -3223,20 +3221,6 @@ function toggleTabMute(tabId) {
   tab.isMuted = !tab.isMuted;
   try { tab.webview.setAudioMuted(tab.isMuted); } catch(e) {}
   renderTabs();
-}
-
-// Attach audio detection to webview events
-const _origAttach = attachWebviewEvents;
-function attachWebviewEventsExtended(wv, tabId) {
-  _origAttach(wv, tabId);
-  wv.addEventListener('media-started-playing', () => {
-    const tab = getTabById(tabId);
-    if (tab) { tab.isAudible = true; renderTabs(); }
-  });
-  wv.addEventListener('media-paused', () => {
-    const tab = getTabById(tabId);
-    if (tab) { tab.isAudible = false; renderTabs(); }
-  });
 }
 
 // ── DOWNLOADS ─────────────────────────────────────────────────────────────────
