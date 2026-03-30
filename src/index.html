@@ -1509,6 +1509,7 @@
 <div id="titlebar">
   <div id="win-controls">
     <button class="wc-btn" id="btn-close"    title="Close">✕</button>
+    <button class="wc-btn" id="btn-minimize" title="Minimize">–</button>
     <button class="wc-btn" id="btn-maximize" title="Maximize">⤢</button>
   </div>
   <div id="start-tab" title="Start — Weekly Planner">
@@ -1883,7 +1884,7 @@ function attachWebviewEvents(wv, tabId) {
   wv.addEventListener('page-title-updated', e => {
     tab.title = e.title || 'Untitled';
     // Update history entry with correct title
-    const hEntry = history.find(h => h.url === tab.url);
+    const hEntry = browserHistory.find(h => h.url === tab.url);
     if (hEntry) { hEntry.title = tab.title; if (activePanel === 'history') renderHistory(); }
     // Now that we have the real title, sync to any project this tab belongs to
     if (tab.projectId && tab.url && tab.url !== HOMEPAGE) {
@@ -1906,7 +1907,7 @@ function attachWebviewEvents(wv, tabId) {
   wv.addEventListener('page-favicon-updated', e => {
     if (e.favicons && e.favicons.length) {
       tab.favicon = e.favicons[0];
-      const hEntry = history.find(h => h.url === tab.url);
+      const hEntry = browserHistory.find(h => h.url === tab.url);
       if (hEntry) hEntry.favicon = tab.favicon;
     }
     renderTabs();
@@ -2013,39 +2014,42 @@ function navigateTo(url, tabId) {
       tab.webview.remove();
       tab.webview = null;
     }
-    if (!tab.newtab) {
-      // Recreate newtab page
-      const tmpId = tab.id;
-      const content = document.getElementById('content');
-      const page = document.createElement('div');
-      page.className = 'newtab-page';
-      page.innerHTML = `
-        <div class="newtab-top-spacer"></div>
-        <img class="newtab-icon" src="icon.png" alt="Joy"/>
-        <div class="newtab-clock" id="nt-clock-${tmpId}">00:00</div>
-        <div class="newtab-date" id="nt-date-${tmpId}"></div>
-        <div class="newtab-greeting" id="nt-greeting-${tmpId}"></div>
-        <div class="newtab-search">
-          <input type="text" placeholder="Search the web or enter a URL…" id="nt-search-${tmpId}" autocomplete="off"/>
-          <button id="nt-go-${tmpId}">→</button>
-        </div>
-        <button class="newtab-wallpaper-btn" id="nt-wp-btn-${tmpId}" title="Change wallpaper">🖼️</button>
-      `;
-      startClock(tmpId);
-      page.querySelector(`#nt-wp-btn-${tmpId}`).addEventListener('click', () => openWallpaperPicker());
-      const goFn = () => {
-        const val = document.getElementById(`nt-search-${tmpId}`).value;
-        navigateTo(normalizeUrl(val), tmpId);
-      };
-      page.querySelector(`#nt-go-${tmpId}`).addEventListener('click', goFn);
-      page.querySelector(`#nt-search-${tmpId}`).addEventListener('keydown', e => { if (e.key === 'Enter') goFn(); });
-      page.querySelectorAll('.quicklink').forEach(a => {
-        a.addEventListener('click', e => { e.preventDefault(); navigateTo(a.dataset.url, tmpId); });
-      });
-      content.appendChild(page);
-      tab.newtab = page;
-      tab.title = 'New Tab';
+    if (tab.newtab) {
+      // Already have a newtab page — just switch to it
+      switchTab(tabId);
+      return;
     }
+    // Recreate newtab page
+    const tmpId = tab.id;
+    const content = document.getElementById('content');
+    const page = document.createElement('div');
+    page.className = 'newtab-page';
+    page.innerHTML = `
+      <div class="newtab-top-spacer"></div>
+      <img class="newtab-icon" src="icon.png" alt="Joy"/>
+      <div class="newtab-clock" id="nt-clock-${tmpId}">00:00</div>
+      <div class="newtab-date" id="nt-date-${tmpId}"></div>
+      <div class="newtab-greeting" id="nt-greeting-${tmpId}"></div>
+      <div class="newtab-search">
+        <input type="text" placeholder="Search the web or enter a URL…" id="nt-search-${tmpId}" autocomplete="off"/>
+        <button id="nt-go-${tmpId}">→</button>
+      </div>
+      <button class="newtab-wallpaper-btn" id="nt-wp-btn-${tmpId}" title="Change wallpaper">🖼️</button>
+    `;
+    startClock(tmpId);
+    page.querySelector(`#nt-wp-btn-${tmpId}`).addEventListener('click', () => openWallpaperPicker());
+    const goFn = () => {
+      const val = document.getElementById(`nt-search-${tmpId}`).value;
+      navigateTo(normalizeUrl(val), tmpId);
+    };
+    page.querySelector(`#nt-go-${tmpId}`).addEventListener('click', goFn);
+    page.querySelector(`#nt-search-${tmpId}`).addEventListener('keydown', e => { if (e.key === 'Enter') goFn(); });
+    page.querySelectorAll('.quicklink').forEach(a => {
+      a.addEventListener('click', e => { e.preventDefault(); navigateTo(a.dataset.url, tmpId); });
+    });
+    content.appendChild(page);
+    tab.newtab = page;
+    tab.title = 'New Tab';
     switchTab(tabId);
     return;
   }
@@ -2120,6 +2124,7 @@ function setLoading(on) {
 
 // ── Event wiring ──────────────────────────────────────────────────────────────
 document.getElementById('btn-close').addEventListener('click',    () => window.electronAPI.close());
+document.getElementById('btn-minimize').addEventListener('click', () => window.electronAPI.minimize());
 document.getElementById('btn-maximize').addEventListener('click', () => window.electronAPI.maximize());
 
 document.getElementById('new-tab-btn').addEventListener('click', () => createTab(HOMEPAGE));
@@ -2569,7 +2574,7 @@ function getStateToSave() {
     colorIndex,
     visionLevel: window._visionLevel || 'good',
     notes,
-    history,
+    history: browserHistory,
     activePanel,
     darkMode: isDark,
     wallpaper: activeWallpaper,
@@ -2642,7 +2647,7 @@ document.getElementById('toggle-history-btn').addEventListener('click',  () => s
 
 document.getElementById('history-search').addEventListener('input', e => renderHistory(e.target.value));
 document.getElementById('history-clear-btn').addEventListener('click', () => {
-  history = [];
+  browserHistory = [];
   persistState();
   renderHistory();
 });
@@ -2849,12 +2854,14 @@ function renderNotes() {
     checkbox.checked = !!note.done;
     checkbox.style.cssText = 'margin-top:2px;flex-shrink:0;width:14px;height:14px;accent-color:var(--accent);cursor:pointer;';
     checkbox.addEventListener('change', () => {
-      const note = notes[url].splice(idx, 1)[0];
-      note.done = checkbox.checked;
-      if (note.done) {
-        notes[url].push(note);
+      const liveIdx = notes[url].findIndex(n => n.ts === note.ts);
+      if (liveIdx === -1) return;
+      const n = notes[url].splice(liveIdx, 1)[0];
+      n.done = checkbox.checked;
+      if (n.done) {
+        notes[url].push(n);
       } else {
-        notes[url].unshift(note);
+        notes[url].unshift(n);
       }
       persistState();
       renderNotes();
@@ -2890,21 +2897,25 @@ function renderNotes() {
         transition: background 0.15s, color 0.15s, border-color 0.15s;
       `;
       urgentBtn.addEventListener('mouseenter', () => {
-        if (!notes[url][idx].urgent) {
+        const liveIdx = notes[url].findIndex(n => n.ts === note.ts);
+        if (liveIdx === -1 || !notes[url][liveIdx].urgent) {
           urgentBtn.style.background = 'rgba(239,68,68,0.08)';
           urgentBtn.style.borderColor = 'rgba(239,68,68,0.4)';
           urgentBtn.style.color = '#ef4444';
         }
       });
       urgentBtn.addEventListener('mouseleave', () => {
-        if (!notes[url][idx].urgent) {
+        const liveIdx = notes[url].findIndex(n => n.ts === note.ts);
+        if (liveIdx === -1 || !notes[url][liveIdx].urgent) {
           urgentBtn.style.background = 'transparent';
           urgentBtn.style.borderColor = 'var(--border)';
           urgentBtn.style.color = 'var(--text-dim)';
         }
       });
       urgentBtn.addEventListener('click', () => {
-        notes[url][idx].urgent = !notes[url][idx].urgent;
+        const liveIdx = notes[url].findIndex(n => n.ts === note.ts);
+        if (liveIdx === -1) return;
+        notes[url][liveIdx].urgent = !notes[url][liveIdx].urgent;
         persistState();
         renderNotes();
       });
@@ -2913,7 +2924,9 @@ function renderNotes() {
     el.onmouseover = () => { del.style.opacity = '1'; };
     el.onmouseout  = () => { del.style.opacity = '0'; };
     del.addEventListener('click', () => {
-      notes[url].splice(idx, 1);
+      const liveIdx = notes[url].findIndex(n => n.ts === note.ts);
+      if (liveIdx === -1) return;
+      notes[url].splice(liveIdx, 1);
       if (notes[url].length === 0) delete notes[url];
       persistState();
       renderNotes();
@@ -2954,16 +2967,16 @@ document.getElementById('note-input').addEventListener('keydown', e => { if (e.k
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 // ── History ───────────────────────────────────────────────────────────────────
-let history = []; // [ { url, title, favicon, ts } ]
+let browserHistory = []; // [ { url, title, favicon, ts } ]
 const HISTORY_MAX = 500;
 
 function recordHistory(url, title, favicon) {
   if (!url || url === HOMEPAGE) return;
   // Remove existing duplicate
-  const dupIdx = history.findIndex(h => h.url === url);
-  if (dupIdx !== -1) history.splice(dupIdx, 1);
-  history.unshift({ url, title: title || url, favicon: favicon || null, ts: Date.now() });
-  if (history.length > HISTORY_MAX) history = history.slice(0, HISTORY_MAX);
+  const dupIdx = browserHistory.findIndex(h => h.url === url);
+  if (dupIdx !== -1) browserHistory.splice(dupIdx, 1);
+  browserHistory.unshift({ url, title: title || url, favicon: favicon || null, ts: Date.now() });
+  if (browserHistory.length > HISTORY_MAX) browserHistory = browserHistory.slice(0, HISTORY_MAX);
   if (activePanel === 'history') renderHistory();
   persistState();
 }
@@ -2972,7 +2985,7 @@ function renderHistory(filter) {
   const body = document.getElementById('history-body');
   const searchVal = filter !== undefined ? filter : (document.getElementById('history-search')?.value || '');
   const q = searchVal.trim().toLowerCase();
-  const entries = q ? history.filter(h => h.title.toLowerCase().includes(q) || h.url.toLowerCase().includes(q)) : history;
+  const entries = q ? browserHistory.filter(h => h.title.toLowerCase().includes(q) || h.url.toLowerCase().includes(q)) : browserHistory;
 
   body.innerHTML = '';
 
@@ -3058,7 +3071,7 @@ async function boot() {
     if (saved.darkMode) setDarkMode(true);
     if (saved.wallpaper) activeWallpaper = saved.wallpaper;
     if (saved.notes) notes = saved.notes;
-    if (saved.history) history = saved.history;
+    if (saved.history) browserHistory = saved.history;
 
     // Restore tabs first
     if (saved.savedTabs && saved.savedTabs.length > 0) {
@@ -3232,14 +3245,17 @@ function addDownload(filename, url) {
   downloads.unshift({ id, filename, url, progress: 0, done: false, failed: false });
   updateDownloadBadge();
   renderDownloadBar();
-  // Simulate progress (real downloads come via Electron IPC)
-  let prog = 0;
-  const interval = setInterval(() => {
-    prog += Math.random() * 18 + 4;
-    if (prog >= 100) { prog = 100; clearInterval(interval); markDownloadDone(id); }
-    const dl = downloads.find(d => d.id === id);
-    if (dl) { dl.progress = Math.round(prog); renderDownloadBar(); }
-  }, 200);
+  // Only simulate progress when running outside Electron (dev/testing).
+  // Real progress comes via onDownloadProgress IPC events.
+  if (!window.electronAPI) {
+    let prog = 0;
+    const interval = setInterval(() => {
+      prog += Math.random() * 18 + 4;
+      if (prog >= 100) { prog = 100; clearInterval(interval); markDownloadDone(id); }
+      const dl = downloads.find(d => d.id === id);
+      if (dl) { dl.progress = Math.round(prog); renderDownloadBar(); }
+    }, 200);
+  }
   return id;
 }
 
