@@ -1,4 +1,4 @@
-# Maintainer: Your Name <your@email.com>
+# Maintainer: drpt78 <drpt78@github>
 pkgname=joy-browser
 pkgver=0.1.0
 pkgrel=1
@@ -21,7 +21,7 @@ package() {
 
   # Install app files
   install -dm755 "$pkgdir/usr/lib/$pkgname"
-  cp -r src index.html icon.png package.json node_modules \
+  cp -r src package.json node_modules \
     "$pkgdir/usr/lib/$pkgname/"
 
   # Launcher script
@@ -32,7 +32,7 @@ exec electron /usr/lib/$pkgname "\$@"
 EOF
   chmod +x "$pkgdir/usr/bin/$pkgname"
 
-  # Desktop entry (shows in app menus)
+  # Desktop entry
   install -dm755 "$pkgdir/usr/share/applications"
   cat > "$pkgdir/usr/share/applications/$pkgname.desktop" << EOF
 [Desktop Entry]
@@ -47,5 +47,5 @@ StartupWMClass=joy-browser
 EOF
 
   # Icon
-  install -Dm644 icon.png "$pkgdir/usr/share/pixmaps/$pkgname.png"
+  install -Dm644 src/icon.png "$pkgdir/usr/share/pixmaps/$pkgname.png"
 }
