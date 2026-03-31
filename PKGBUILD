@@ -1,6 +1,6 @@
 # Maintainer: Your Name <your@email.com>
 pkgname=joy-browser
-pkgver=0.0.25
+pkgver=0.1.0
 pkgrel=1
 pkgdesc="A custom Electron-based web browser for Linux"
 arch=('x86_64')

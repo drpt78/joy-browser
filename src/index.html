@@ -125,6 +125,23 @@
     #btn-close:hover    { background: rgba(255,80,80,0.12);  color: #ff5f57; border-color: #ff5f57; }
     #btn-maximize:hover { background: rgba(40,200,64,0.12);  color: #1a9e30; border-color: #28c840; }
 
+    /* Titlebar nav buttons (back / reload) */
+    .titlebar-nav-btn {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+      -webkit-app-region: no-drag;
+    }
+    .titlebar-nav-btn:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
+    .titlebar-nav-btn:disabled { opacity: 0.3; cursor: default; }
+
     /* Tabs */
     #tabs {
       display: flex;
@@ -1451,8 +1468,8 @@
     <span id="start-tab-label">Start</span>
   </div>
   <button id="new-tab-btn" title="New tab">+</button>
-  <button class="wc-btn" id="btn-back"    title="Back"    style="width:24px;height:24px;font-size:12px;">&#8592;</button>
-  <button class="wc-btn" id="btn-reload"  title="Reload"  style="width:24px;height:24px;font-size:12px;">&#8635;</button>
+  <button class="titlebar-nav-btn" id="btn-back"   title="Back">&#8592;</button>
+  <button class="titlebar-nav-btn" id="btn-reload" title="Reload">&#8635;</button>
   <div id="tabs"></div>
   <button id="toggle-notes-btn" title="Toggle notes panel" style="
     width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
