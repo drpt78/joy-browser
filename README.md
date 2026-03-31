@@ -1,5 +1,9 @@
 Joy Web Browser
 
+Coding: Claude AI
+
+Program Management: Claude AI & Peter Taraba
+
 ![Jow Web Browser on Linux Manjaro](./joy-browser.png)
 
 ```bash
