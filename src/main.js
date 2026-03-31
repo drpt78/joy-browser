@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { app, BrowserWindow, ipcMain, session, webContents } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -42,6 +42,20 @@ function createWindow() {
       .finally(() => mainWindow.destroy());
   });
 }
+
+// Intercept every new webContents (including webview guests) and block
+// any attempt to open a new OS-level window. Instead, send the URL back
+// to the renderer so it can open a new tab.
+app.on('web-contents-created', (_, contents) => {
+  // setWindowOpenHandler covers window.open() and target=_blank links
+  contents.setWindowOpenHandler(({ url }) => {
+    // Send to renderer to open as a tab instead
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('open-url-in-tab', url);
+    }
+    return { action: 'deny' };
+  });
+});
 
 app.whenReady().then(() => {
   session.defaultSession.webRequest.onBeforeRequest(

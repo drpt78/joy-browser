@@ -10,4 +10,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onDownloadStarted:  (cb) => ipcRenderer.on('download-started',  (_, data) => cb(data)),
   onDownloadProgress: (cb) => ipcRenderer.on('download-progress', (_, data) => cb(data)),
   onDownloadDone:     (cb) => ipcRenderer.on('download-done',     (_, data) => cb(data)),
+  onOpenUrlInTab:     (cb) => ipcRenderer.on('open-url-in-tab',   (_, url)  => cb(url)),
 });

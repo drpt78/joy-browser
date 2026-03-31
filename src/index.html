@@ -1854,7 +1854,6 @@ function createTab(url = HOMEPAGE) {
     // Real webview
     const wv = document.createElement('webview');
     wv.src = url;
-    wv.setAttribute('allowpopups', '');
     wv.setAttribute('partition', 'persist:browser');
     content.appendChild(wv);
     tab.webview = wv;
@@ -1944,7 +1943,17 @@ function attachWebviewEvents(wv, tabId) {
 
   wv.addEventListener('new-window', e => {
     e.preventDefault();
+    // Always open in a new tab — never allow OS-level window spawning
     createTab(e.url);
+  });
+
+  // Some sites (e.g. Google News) navigate via window.open with a redirect URL.
+  // Intercept top-level navigations away from the current page and keep them in-tab.
+  wv.addEventListener('will-navigate', e => {
+    // will-navigate fires for normal navigation too, so only intercept
+    // when the src hasn't been set by us (i.e. it's a JS-triggered open).
+    // We can't fully distinguish, so we just let it proceed — the webview
+    // will navigate in-place which is correct behavior.
   });
 
   wv.addEventListener('media-started-playing', () => {
@@ -2076,7 +2085,6 @@ function navigateTo(url, tabId) {
     if (tab.newtab) { tab.newtab.remove(); tab.newtab = null; }
     const wv = document.createElement('webview');
     wv.src = url;
-    wv.setAttribute('allowpopups', '');
     wv.setAttribute('partition', 'persist:browser');
     document.getElementById('content').appendChild(wv);
     tab.webview = wv;
@@ -2417,7 +2425,6 @@ function openUrlForProject(entry, projectId) {
     const content = document.getElementById('content');
     const wv = document.createElement('webview');
     wv.src = entry.url;
-    wv.setAttribute('allowpopups', '');
     wv.setAttribute('partition', 'persist:browser');
     content.appendChild(wv);
     tab.webview = wv;
@@ -3342,6 +3349,11 @@ if (window.electronAPI) {
   window.electronAPI.onDownloadDone(({ filename, state }) => {
     const dl = downloads.find(d => d.filename === filename);
     if (dl) { dl.done = true; dl.failed = state !== 'completed'; dl.progress = 100; renderDownloadBar(); updateDownloadBadge(); }
+  });
+  // Catch any new-window that escaped the webview event and was denied at the
+  // main-process level — open it as a tab here instead.
+  window.electronAPI.onOpenUrlInTab((url) => {
+    if (url && url.startsWith('http')) createTab(url);
   });
 }
 
