@@ -4,7 +4,7 @@ Coding: Claude AI
 
 Program Management: Claude AI & Peter Taraba
 
-![Jow Web Browser on Linux Manjaro](./joy-browser.png)
+![Jow Web Browser on Linux Manjaro](./joy-browser-0-1-0.png)
 
 ```bash
 yay -S joy-browser
