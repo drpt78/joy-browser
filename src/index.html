@@ -1869,9 +1869,104 @@ function attachWebviewEvents(wv, tabId) {
   const tab = getTabById(tabId);
   if (!tab) return;
 
+  // ── No Kings filter ──────────────────────────────────────────────────────
+  // Injected into every page: replaces images whose nearby caption/alt/text
+  // contains "Donald Trump" or "President Trump" with an empty "No Kings" frame.
+  const NO_KINGS_SCRIPT = `
+  (function() {
+    const PATTERN = /\\bDonald\\s+Trump\\b|\\bPresident\\s+Trump\\b|\\bTrump\\b/i;
+
+    function makeFrame(w, h) {
+      const wrapper = document.createElement('div');
+      const ws = w  ? Math.max(parseInt(w),  60) + 'px' : '100%';
+      const hs = h ? Math.max(parseInt(h), 60) + 'px' : '120px';
+      wrapper.style.cssText = [
+        'display:inline-flex',
+        'align-items:center',
+        'justify-content:center',
+        'flex-direction:column',
+        'gap:6px',
+        'background:#1a1a1a',
+        'border:2px solid #444',
+        'border-radius:4px',
+        'color:#ccc',
+        'font-family:sans-serif',
+        'font-size:clamp(11px,1.4vw,16px)',
+        'font-weight:600',
+        'letter-spacing:0.08em',
+        'text-transform:uppercase',
+        'box-sizing:border-box',
+        'width:' + ws,
+        'height:' + hs,
+        'vertical-align:middle',
+        'flex-shrink:0',
+      ].join(';');
+      wrapper.innerHTML =
+        '<span style="font-size:1.8em;line-height:1">👑</span>' +
+        '<span>No Kings</span>';
+      return wrapper;
+    }
+
+    function textNearImg(img) {
+      // Check alt text, title, aria-label on the image itself
+      const direct = (img.alt || '') + ' ' + (img.title || '') + ' ' +
+                     (img.getAttribute('aria-label') || '');
+      if (PATTERN.test(direct)) return true;
+
+      // Walk up to 4 ancestors looking for caption text
+      let el = img.parentElement;
+      for (let i = 0; i < 4 && el; i++, el = el.parentElement) {
+        const tag = el.tagName;
+        if (tag === 'FIGURE' || tag === 'PICTURE' || tag === 'DIV' ||
+            tag === 'SPAN'   || tag === 'SECTION' || tag === 'ARTICLE' ||
+            tag === 'FIGCAPTION') {
+          if (PATTERN.test(el.innerText || el.textContent || '')) return true;
+        }
+        // Also check the next sibling (common caption pattern)
+        const ns = el.nextElementSibling;
+        if (ns && PATTERN.test(ns.innerText || ns.textContent || '')) return true;
+        const ps = el.previousElementSibling;
+        if (ps && PATTERN.test(ps.innerText || ps.textContent || '')) return true;
+      }
+      return false;
+    }
+
+    function replaceImg(img) {
+      if (img.dataset.noKingsReplaced) return;
+      img.dataset.noKingsReplaced = '1';
+      const frame = makeFrame(img.naturalWidth || img.width || img.offsetWidth,
+                               img.naturalHeight || img.height || img.offsetHeight);
+      // Try to replace the picture element if wrapped in one
+      const picture = img.closest('picture');
+      const target  = picture || img;
+      target.parentNode && target.parentNode.replaceChild(frame, target);
+    }
+
+    function scan() {
+      document.querySelectorAll('img:not([data-no-kings-replaced])').forEach(img => {
+        if (textNearImg(img)) replaceImg(img);
+      });
+    }
+
+    // Initial scan
+    scan();
+
+    // Watch for dynamically loaded images (infinite scroll, lazy-load, etc.)
+    const observer = new MutationObserver(() => scan());
+    observer.observe(document.body || document.documentElement, {
+      childList: true, subtree: true,
+    });
+  })();
+  `;
+
+  function injectNoKings() {
+    try { wv.executeJavaScript(NO_KINGS_SCRIPT); } catch(e) {}
+  }
+
   wv.addEventListener('dom-ready', () => {
     tab.webviewReady = true;
     if (tabId === activeTabId) updateNavButtons();
+    injectNoKings();
   });
 
   wv.addEventListener('did-start-loading', () => {
@@ -1890,6 +1985,7 @@ function attachWebviewEvents(wv, tabId) {
 
   wv.addEventListener('did-finish-load', () => {
     setLoading(false);
+    injectNoKings();
   });
 
   wv.addEventListener('page-title-updated', e => {
