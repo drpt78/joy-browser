@@ -1854,6 +1854,7 @@ function createTab(url = HOMEPAGE) {
     // Real webview
     const wv = document.createElement('webview');
     wv.src = url;
+    wv.setAttribute('allowpopups', '');
     wv.setAttribute('partition', 'persist:browser');
     content.appendChild(wv);
     tab.webview = wv;
@@ -2085,6 +2086,7 @@ function navigateTo(url, tabId) {
     if (tab.newtab) { tab.newtab.remove(); tab.newtab = null; }
     const wv = document.createElement('webview');
     wv.src = url;
+    wv.setAttribute('allowpopups', '');
     wv.setAttribute('partition', 'persist:browser');
     document.getElementById('content').appendChild(wv);
     tab.webview = wv;
@@ -2425,6 +2427,7 @@ function openUrlForProject(entry, projectId) {
     const content = document.getElementById('content');
     const wv = document.createElement('webview');
     wv.src = entry.url;
+    wv.setAttribute('allowpopups', '');
     wv.setAttribute('partition', 'persist:browser');
     content.appendChild(wv);
     tab.webview = wv;
