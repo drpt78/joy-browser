@@ -10,6 +10,12 @@ Program Management: Claude AI & Peter Taraba
 yay -S joy-browser
 ```
 
+or
+
+```bash
+paru -S joy-browser
+```
+
 or if you want to test latest code:
 
 ```bash
