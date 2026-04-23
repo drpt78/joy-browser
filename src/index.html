@@ -1533,6 +1533,12 @@
 <!-- SIDEBAR + CONTENT AREA -->
 <div id="main-layout">
   <div id="sidebar">
+    <button class="sidebar-btn" title="Grok AI" onclick="navigateTo('https://grok.com')">
+      <img src="https://grok.com/favicon.ico" alt="Grok"
+           onerror="this.style.display='none';this.parentElement.querySelector('.sb-emoji').style.display='flex'"/>
+      <span class="sb-emoji" style="display:none;font-size:18px">🤖</span>
+      <span class="sidebar-tooltip">Grok AI</span>
+    </button>
     <button class="sidebar-btn" title="Gemini AI" onclick="navigateTo('https://gemini.google.com')">
       <img src="https://www.gstatic.com/images/branding/productlogos/gemini/v2/web-32dp/logo_gemini_color_1x_web_32dp.png" alt="Gemini"
            onerror="this.style.display='none';this.parentElement.querySelector('.sb-emoji').style.display='flex'"/>
