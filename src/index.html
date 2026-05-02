@@ -1844,10 +1844,11 @@ function attachWebviewEvents(wv, tabId) {
 
   // ── No Kings filter ──────────────────────────────────────────────────────
   // Injected into every page: replaces images whose nearby caption/alt/text
-  // contains "Donald Trump" or "President Trump" with an empty "No Kings" frame.
+  // contains "Donald Trump", "President Trump", "Mark Zuckerberg", or "Sam Altman"
+  // with an empty "No Kings" frame.
   const NO_KINGS_SCRIPT = `
   (function() {
-    const PATTERN = /\\bDonald\\s+Trump\\b|\\bPresident\\s+Trump\\b|\\bTrump\\b/i;
+    const PATTERN = /\\bDonald\\s+Trump\\b|\\bPresident\\s+Trump\\b|\\bTrump\\b|\\bMark\\s+Zuckerberg\\b|\\bZuckerberg\\b|\\bSam\\s+Altman\\b/i;
 
     function makeFrame(w, h) {
       const wrapper = document.createElement('div');
