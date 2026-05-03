@@ -3824,7 +3824,7 @@ function renderQuoteOnPage(tabId) {
   if (page.querySelector('.newtab-quote')) return;
 
   const q = getDailyQuote();
-  const wikiUrl = `https://en.wikipedia.org/wiki/${q.wiki}`;
+  const wikiUrl = `https://claude.ai/new?q=${encodeURIComponent('Tell me about ' + q.author)}`;
 
   const block = document.createElement('div');
   block.className = 'newtab-quote';
@@ -3834,13 +3834,13 @@ function renderQuoteOnPage(tabId) {
       <span class="newtab-quote-mark">"</span>
       <div class="newtab-quote-text">${q.text}</div>
     </div>
-    <a class="newtab-quote-author" href="${wikiUrl}" title="Open Wikipedia article for ${q.author}">
+    <a class="newtab-quote-author" href="${wikiUrl}" title="Ask Claude about ${q.author}">
       ${q.author}
-      <span class="newtab-quote-author-wiki">↗ Wikipedia</span>
+      <span class="newtab-quote-author-wiki">↗ Claude</span>
     </a>
   `;
 
-  // Open Wikipedia in a new browser tab (Electron-safe — no target="_blank")
+  // Open Claude in a new browser tab (Electron-safe — no target="_blank")
   block.querySelector('.newtab-quote-author').addEventListener('click', e => {
     e.preventDefault();
     createTab(wikiUrl);
